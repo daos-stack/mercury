@@ -1,6 +1,6 @@
 Name:		mercury
 Version:	1.0.1
-Release:	2%{?dist}
+Release:	3%{?dist}
 
 Summary:	Mercury
 
@@ -8,7 +8,6 @@ Group:		Development/Libraries
 License:	ANL
 URL:		http://mercury-hpc.github.io/documentation/
 Source0:	https://github.com/mercury-hpc/%{name}/releases/download/v%{version}/%{name}-%{version}.tar.bz2
-#Patch1:		https://github.com/mercury-hpc/mercury/commit/9f9dd80164a2b14b184f2b373efeb50a5fc80dc5.patch
 Patch1:		https://github.com/mercury-hpc/mercury/compare/c68870ffc0409c29eece5ba036c6efd3c22cee41^...v1.0.1.patch
 
 BuildRequires:	openpa-devel
