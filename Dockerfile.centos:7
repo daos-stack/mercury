@@ -33,13 +33,13 @@ RUN grep use_nspawn || \
 RUN echo -e "config_opts['yum.conf'] += \"\"\"\n\
 [openpa]\n\
 name=openpa\n\
-baseurl=https://build.hpdd.intel.com/job/daos-stack/job/openpa/job/master/lastSuccessfulBuild/artifact/artifacts/centos7/\n\
+baseurl=https://build.hpdd.intel.com/job/daos-stack/job/openpa/job/PR-4/lastSuccessfulBuild/artifact/artifacts/centos7/\n\
 enabled=1\n\
 gpgcheck = False\n\
 \n\
 [libfabric]\n\
 name=libfabric\n\
-baseurl=https://build.hpdd.intel.com/job/daos-stack/job/libfabric/job/master/lastSuccessfulBuild/artifact/artifacts/centos7/\n\
+baseurl=https://build.hpdd.intel.com/job/daos-stack/job/libfabric/job/PR-4/lastSuccessfulBuild/artifact/artifacts/centos7/\n\
 enabled=1\n\
 gpgcheck = False\n\
 [pmix]\n\

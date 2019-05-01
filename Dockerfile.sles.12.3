@@ -31,7 +31,7 @@ RUN zypper --non-interactive ar -C -f https://build.hpdd.intel.com/job/daos-stac
     zypper --non-interactive ar -C -f https://build.hpdd.intel.com/job/daos-stack/job/libfabric/job/PR-4/lastSuccessfulBuild/artifact/artifacts/sles12.3/ libfabric
 # our libfabric conflicts with libfabric1
 # TODO: consider if we should rename ours or replace libfabric1, etc.
-RUN zypper --non-interactive remove libfabric1
+RUN if rpm -q libfabric1; then zypper --non-interactive remove libfabric1; fi
 RUN zypper --non-interactive install ca-certificates-mozilla
 RUN zypper --non-interactive --no-gpg-check install openpa-devel      \
                                                     libfabric-devel   \
