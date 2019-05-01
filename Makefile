@@ -21,12 +21,6 @@ SPEC    := $(NAME).spec
 SOURCES := $(addprefix _topdir/SOURCES/,$(notdir $(SOURCE)) $(PATCHES))
 TARGETS := $(RPMS) $(SRPM)
 
-# need to use -k because the certificate store is not properly
-# configured on SLES 12.3 containers
-ifeq ($(shell lsb_release -sir),SUSE 12.3foo)
-  CURL_INSECURE := -k
-endif
-
 all: $(TARGETS)
 
 %/:
@@ -37,10 +31,10 @@ _topdir/SOURCES/%: % | _topdir/SOURCES/
 	ln $< $@
 
 $(NAME)-$(VERSION).tar.$(SRC_EXT):
-	curl $(CURL_INSECURE) -f -L -O '$(SOURCE)'
+	curl -f -L -O '$(SOURCE)'
 
 v$(VERSION).tar.$(SRC_EXT):
-	curl $(CURL_INSECURE) -f -L -O '$(SOURCE)'
+	curl -f -L -O '$(SOURCE)'
 
 # see https://stackoverflow.com/questions/2973445/ for why we subst
 # the "rpm" for "%" to effectively turn this into a multiple matching
