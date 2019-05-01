@@ -37,7 +37,7 @@ _topdir/SOURCES/%: % | _topdir/SOURCES/
 	ln $< $@
 
 $(NAME)-$(VERSION).tar.$(SRC_EXT):
-	curl -f -L -O '$(SOURCE)'
+	curl $(CURL_INSECURE) -f -L -O '$(SOURCE)'
 
 v$(VERSION).tar.$(SRC_EXT):
 	curl $(CURL_INSECURE) -f -L -O '$(SOURCE)'
