@@ -67,6 +67,7 @@ pipeline {
                         sh '''rm -rf artifacts/sles12.3/
                               mkdir -p artifacts/sles12.3/
                               rm -rf _topdir/SRPMS
+                              rm -f mercury-1.0.1.tar.bz2 || true
                               if make srpm; then
                                   rm -rf _topdir/RPMS
                                   if make rpms; then
