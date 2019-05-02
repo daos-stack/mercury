@@ -1,6 +1,6 @@
 Name:		mercury
 Version:	1.0.1
-Release:	3%{?dist}
+Release:	4%{?dist}
 
 Summary:	Mercury
 
@@ -66,7 +66,7 @@ cd build
 
 
 %changelog
-* Thu May 02 2019 Brian J. Murrell <brian.murrell@intel> - 1.0.1-3
+* Thu May 02 2019 Brian J. Murrell <brian.murrell@intel> - 1.0.1-4
 - devel package needs to require the lib package
 
 * Fri Mar 15 2019 Brian J. Murrell <brian.murrell@intel> - 1.0.1-2
