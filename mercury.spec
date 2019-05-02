@@ -20,6 +20,7 @@ Mercury
 
 %package devel
 Summary:	Mercury devel package
+Requires:	%{name}%{?_isa} = %{version}-%{release}
 
 %description devel
 Mercury devel
@@ -65,6 +66,9 @@ cd build
 
 
 %changelog
+* Thu May 02 2019 Brian J. Murrell <brian.murrell@intel> - 1.0.1-3
+- devel package needs to require the lib package
+
 * Fri Mar 15 2019 Brian J. Murrell <brian.murrell@intel> - 1.0.1-2
 - add patch to revert back to Dec 06, 2018 c68870f
 
