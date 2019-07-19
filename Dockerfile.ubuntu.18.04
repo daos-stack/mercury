@@ -18,7 +18,6 @@ ENV UBUNTU_URL="https://launchpad.net/ubuntu/+archive/primary/+files"
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
             libibverbs-dev libpsm-infinipath1-dev librdmacm-dev
 
-ARG CACHEBUST=1
 RUN curl -sS -f -L -O ${UBUNTU_URL}/libpsm2-2_10.3.58-1_amd64.deb ; \
     curl -sS -f -L -O ${UBUNTU_URL}/libpsm2-dev_10.3.58-1_amd64.deb ; \
     apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
@@ -36,6 +35,7 @@ ENV OFI_ART=\
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
             cmake libboost-dev libevent-dev pkg-config
 
+ARG CACHEBUST=1
 RUN curl -sS -f -L -O ${OFI_ART}/libfabric1_1.7.1%7Erc1-1_amd64.deb; \
     curl -sS -f -L -O ${OFI_ART}/libfabric-dev_1.7.1%7Erc1-1_amd64.deb ; \
     apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
@@ -43,6 +43,5 @@ RUN curl -sS -f -L -O ${OFI_ART}/libfabric1_1.7.1%7Erc1-1_amd64.deb; \
 
 
 # force an upgrade to get any newly built packages
-ARG CACHEBUST=1
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get upgrade -y; \
     apt-get autoremove -y
