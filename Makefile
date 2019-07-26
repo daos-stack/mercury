@@ -11,7 +11,7 @@ else
 PATCHES := v1.0.1...cc0807e8377e129945834d292be21a6667a8cbb3.patch
 endif
 
-v1.0.1...cc0807e8377e129945834d292be21a6667a8cbb3.patch
+v1.0.1...cc0807e8377e129945834d292be21a6667a8cbb3.patch:
 	curl -f -L -O '$(PATCH1)'
 
 include Makefile_packaging.mk
