@@ -27,7 +27,7 @@ Mercury devel
 
 %prep
 %setup -q
-%patch1 -R -p1
+%patch1 -p1
 
 %build
 mkdir build
