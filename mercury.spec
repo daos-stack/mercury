@@ -1,6 +1,6 @@
 Name:		mercury
 Version:	1.0.1
-Release:	4%{?dist}
+Release:	5%{?dist}
 
 Summary:	Mercury
 
@@ -8,7 +8,7 @@ Group:		Development/Libraries
 License:	ANL
 URL:		http://mercury-hpc.github.io/documentation/
 Source0:	https://github.com/mercury-hpc/%{name}/releases/download/v%{version}/%{name}-%{version}.tar.bz2
-Patch1:		https://github.com/mercury-hpc/mercury/compare/cc0807e8377e129945834d292be21a6667a8cbb3^...v1.0.1.patch
+Patch1:		https://github.com/mercury-hpc/mercury/compare/v1.0.1...cc0807e8377e129945834d292be21a6667a8cbb3.patch
 
 BuildRequires:	openpa-devel
 BuildRequires:	libfabric-devel >= 1.5.0
