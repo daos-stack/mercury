@@ -66,7 +66,7 @@ cd build
 
 
 %changelog
-* Fri Jul 26 2019 Yulu Jia <yulu.jia@intel> - 1.0.1 5
+* Fri Jul 26 2019 Yulu Jia <yulu.jia@intel> - 1.0.1-5
 - update to cc0807 to include the HG_Cancel() fix.
 
 * Thu May 02 2019 Brian J. Murrell <brian.murrell@intel> - 1.0.1-4
