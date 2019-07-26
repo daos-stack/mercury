@@ -8,7 +8,7 @@ Group:		Development/Libraries
 License:	ANL
 URL:		http://mercury-hpc.github.io/documentation/
 Source0:	https://github.com/mercury-hpc/%{name}/releases/download/v%{version}/%{name}-%{version}.tar.bz2
-Patch1:		https://github.com/mercury-hpc/mercury/compare/c68870ffc0409c29eece5ba036c6efd3c22cee41^...v1.0.1.patch
+Patch1:		https://github.com/mercury-hpc/mercury/compare/cc0807e8377e129945834d292be21a6667a8cbb3^...v1.0.1.patch
 
 BuildRequires:	openpa-devel
 BuildRequires:	libfabric-devel >= 1.5.0
@@ -66,6 +66,9 @@ cd build
 
 
 %changelog
+* Fri Jul 26 2019 Yulu Jia <yulu.jia@intel> - 1.0.1 5
+- update to cc0807 to include the HG_Cancel() fix.
+
 * Thu May 02 2019 Brian J. Murrell <brian.murrell@intel> - 1.0.1-4
 - devel package needs to require the lib package
 
