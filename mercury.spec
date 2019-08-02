@@ -66,7 +66,7 @@ cd build
 
 
 %changelog
-* Thu Aug 02 2019 Brian J. Murrell <brian.murrell@intel> - 1.0.1-7
+* Fri Aug 02 2019 Brian J. Murrell <brian.murrell@intel> - 1.0.1-7
 - revert back to the 1.0.1-4 release as the upgrade included
   in -5 (and the subsequent fix in -6) was premature
 
