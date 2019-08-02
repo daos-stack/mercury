@@ -1,6 +1,6 @@
 Name:		mercury
 Version:	1.0.1
-Release:	4%{?dist}
+Release:	7%{?dist}
 
 Summary:	Mercury
 
@@ -66,6 +66,16 @@ cd build
 
 
 %changelog
+* Thu Aug 02 2019 Brian J. Murrell <brian.murrell@intel> - 1.0.1-7
+- revert back to the 1.0.1-4 release as the upgrade included
+  in -5 (and the subsequent fix in -6) was premature
+
+* Thu Aug 01 2019 Brian J. Murrell <brian.murrell@intel> - 1.0.1-6
+- roll the version number back to 1.0.1
+
+* Fri Jul 26 2019 Yulu Jia <yulu.jia@intel> - 1.0.1-5
+- update to cc0807 to include the HG_Cancel() fix.
+
 * Thu May 02 2019 Brian J. Murrell <brian.murrell@intel> - 1.0.1-4
 - devel package needs to require the lib package
 
