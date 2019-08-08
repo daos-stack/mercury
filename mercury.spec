@@ -66,7 +66,7 @@ cd build
 
 
 %changelog
-* Thu Aug 08 2019 Brian J. Murrell <brian.murrell@intel> - 1.0.1-9 
+* Thu Aug 08 2019 Brian J. Murrell <brian.murrell@intel> - 1.0.1-9
 - revert previous update
 
 * Fri Aug 02 2019 Yulu Jia <yulu.jia@intel> - 1.0.1-8
