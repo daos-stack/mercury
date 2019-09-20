@@ -1,6 +1,6 @@
 Name:       mercury
 Version:    1.0.1
-Release:    10%{?dist}
+Release:    11%{?dist}
 
 Summary:    Mercury
 
@@ -90,39 +90,42 @@ cd build
 
 
 %changelog
+* Wed Sep 25 2019 Brian J. Murrell <brian.murrell@intel> - 1.0.1-11
+- Build with PSM2
+
 * Fri Sep 20 2019 Brian J. Murrell <brian.murrell@intel> - 1.0.1-10
-- update to cc0807 to include the HG_Cancel() fix.
-- update to f0b9f9 to get latest changes
+- Update to cc0807 to include the HG_Cancel() fix.
+- Update to f0b9f9 to get latest changes
 
 * Thu Aug 08 2019 Brian J. Murrell <brian.murrell@intel> - 1.0.1-9
-- revert previous update
+- Revert previous update
 
 * Fri Aug 02 2019 Yulu Jia <yulu.jia@intel> - 1.0.1-8
-- update to cc0807 to include the HG_Cancel() fix.
-- roll the version number back to 1.0.1
+- Update to cc0807 to include the HG_Cancel() fix.
+- Roll the version number back to 1.0.1
 
 * Fri Aug 02 2019 Brian J. Murrell <brian.murrell@intel> - 1.0.1-7
-- revert back to the 1.0.1-4 release as the upgrade included
+- Revert back to the 1.0.1-4 release as the upgrade included
   in -5 (and the subsequent fix in -6) was premature
 
 * Thu Aug 01 2019 Brian J. Murrell <brian.murrell@intel> - 1.0.1-6
-- roll the version number back to 1.0.1
+- Roll the version number back to 1.0.1
 
 * Fri Jul 26 2019 Yulu Jia <yulu.jia@intel> - 1.0.1-5
-- update to cc0807 to include the HG_Cancel() fix.
+- Update to cc0807 to include the HG_Cancel() fix.
 
 * Thu May 02 2019 Brian J. Murrell <brian.murrell@intel> - 1.0.1-4
-- devel package needs to require the lib package
+- Devel package needs to require the lib package
 
 * Fri Mar 15 2019 Brian J. Murrell <brian.murrell@intel> - 1.0.1-2
-- add patch to revert back to Dec 06, 2018 c68870f
+- Add patch to revert back to Dec 06, 2018 c68870f
 
 * Mon Mar 11 2019 Brian J. Murrell <brian.murrell@intel> - 1.0.1-1
-- update to 1.0.1
-- add patch for "HG Core: fix missing static inline in mercury_core.h"
+- Update to 1.0.1
+- Add patch for "HG Core: fix missing static inline in mercury_core.h"
 
 * Wed Oct 24 2018 Brian J. Murrell <brian.murrell@intel> - 0.9.0-1.git.0f8f25b
-- update mercury to git sha1 0f8f25bb3d57f117979de65cc3c05cf192cf4b31
+- Update mercury to git sha1 0f8f25bb3d57f117979de65cc3c05cf192cf4b31
 
 * Mon Aug 20 2018 Brian J. Murrell <brian.murrell@intel> - 0.9.0-1.git.f7f6955
-- initial package
+- Initial package
