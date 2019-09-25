@@ -24,14 +24,11 @@ BuildRequires: libffi7
 %endif
 # according to https://en.opensuse.org/openSUSE:Build_Service_cross_distribution_howto
 # this should be 120300
-%if 0%{?sle_version} >= 1 || 0%{?suse_version} >= 1
+# according to my debugging, it's not even set until the rpm is being built
+%if 0%{?suse_version} >= 1315 && !0%{?is_opensuse}
 # have choice for libpsm_infinipath.so.1()(64bit) needed by libfabric1: libpsm2-compat libpsm_infinipath1
 # have choice for libpsm_infinipath.so.1()(64bit) needed by openmpi-libs: libpsm2-compat libpsm_infinipath1
 BuildRequires: libpsm_infinipath1
-%else
-%if 0%{?sle_version} >= 1 || 0%{?suse_version} >= 1
-%{warn:Not BR: libpsm_infinipath1 because sle_version == %{?sle_version} and suse_version == %{?suse_version}}
-%endif
 %endif
 
 %description
@@ -45,8 +42,6 @@ Requires:   %{name}%{?_isa} = %{version}-%{release}
 Mercury devel
 
 %prep
-echo "Running on %{?sle_version}"
-echo "Running on %{?suse_version}"
 %setup -q
 %patch1 -p1
 %patch2 -p1
