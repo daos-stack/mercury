@@ -21,6 +21,15 @@ BuildRequires:	gcc-c++
 # have choice for libffi.so.7(LIBFFI_CLOSURE_7.0)(64bit) needed by python3-base: ghc-bootstrap libffi7
 BuildRequires: libffi7
 %endif
+# according to https://en.opensuse.org/openSUSE:Build_Service_cross_distribution_howto
+# this should be 120300
+# according to my debugging, it's not even set until the rpm is being built
+%if 0%{?suse_version} >= 1315 && !0%{?is_opensuse}
+# have choice for libpsm_infinipath.so.1()(64bit) needed by libfabric1: libpsm2-compat libpsm_infinipath1
+# have choice for libpsm_infinipath.so.1()(64bit) needed by openmpi-libs: libpsm2-compat libpsm_infinipath1
+BuildRequires: libpsm_infinipath1
+%endif
+
 
 %description
 Mercury
