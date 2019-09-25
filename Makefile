@@ -26,4 +26,4 @@ endif
 c68870ffc0409c29eece5ba036c6efd3c22cee41^...v1.0.1.patch:
 	curl -f -L -O '$(PATCH1)'
 
-include Makefile_packaging.mk
+include packaging/Makefile_packaging.mk
