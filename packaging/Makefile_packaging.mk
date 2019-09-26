@@ -409,7 +409,7 @@ chrootbuild: $(SRPM) $(CALLING_MAKEFILE)
 	    baseurl=$${JENKINS_URL:-https://build.hpdd.intel.com/}job/daos-stack/job/$$repo/job/$$branch/; \
 	    baseurl+=$$build_number/artifact/artifacts/$$distro/;           \
             add_repos+=" --repo $$baseurl";                                 \
-    done;                                                                   \
+	done;                                                               \
 	distro_repos="";                                                    \
 	for repo in $($(basename $(DISTRO_ID))_LOCAL_REPOS)                 \
 	            $($(basename $(DISTRO_ID))_REPOS); do                   \
