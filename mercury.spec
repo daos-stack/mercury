@@ -47,6 +47,7 @@ Mercury devel
 %setup -q
 %patch1 -p1
 %patch2 -p1
+%patch3 -p1
 
 %build
 mkdir build
