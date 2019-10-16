@@ -44,7 +44,7 @@ Requires:	%{name}%{?_isa} = %{version}-%{release}
 Mercury devel
 
 %prep
-%autosetup
+%autosetup -p1
 
 %build
 mkdir build
