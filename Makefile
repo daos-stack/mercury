@@ -7,7 +7,7 @@ PATCHES := v1.0.1...cc0807e8377e129945834d292be21a6667a8cbb3.patch              
            616fee16a3c09eb93d804b627e64ea1c84c6b4d4...7b529b63e4003fb15ebdbf2dfdf29ab2a3d3c132.patch \
            7b529b63e4003fb15ebdbf2dfdf29ab2a3d3c132...9889a0d0ba8854c1a0c2bd186a01fac4f57edada.patch \
            9889a0d0ba8854c1a0c2bd186a01fac4f57edada...c2c262813811c3ede28ee32fdebbffd417a7cb80.patch \
-           0001-NA-OFI-use-ip-addr-for-psm2.patch
+           c2c262813811c3ede28ee32fdebbffd417a7cb80...b580971d17ad460529a4516e4c79f0aead7b1515.patch
 
 LEAP_42_REPOS = $(OPENSUSE_REPOS_MIRROR)/repositories/science:/HPC/openSUSE_Leap_42.3/
 SLES_12_REPOS = $(OPENSUSE_REPOS_MIRROR)/repositories/science:/HPC/openSUSE_Leap_42.3/

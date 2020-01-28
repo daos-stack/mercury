@@ -14,7 +14,7 @@ Signed-off-by: Yulu Jia <yulu.jia@intel.com>
  3 files changed, 213 insertions(+), 50 deletions(-)
 
 diff --git a/Testing/CMakeLists.txt b/Testing/CMakeLists.txt
-index 4147f47..5aec246 100644
+index 4147f477..5aec2464 100644
 --- a/Testing/CMakeLists.txt
 +++ b/Testing/CMakeLists.txt
 @@ -75,6 +75,9 @@ if(NA_USE_OFI)
@@ -57,7 +57,7 @@ index 4147f47..5aec246 100644
    endforeach()
  endfunction()
 diff --git a/Testing/na/na_test.c b/Testing/na/na_test.c
-index 2d55055..60296a6 100644
+index 2d550555..60296a60 100644
 --- a/Testing/na/na_test.c
 +++ b/Testing/na/na_test.c
 @@ -305,10 +305,18 @@ na_test_gen_config(struct na_test_info *na_test_info)
@@ -110,7 +110,7 @@ index 2d55055..60296a6 100644
      if (ret != NA_SUCCESS)
          NA_Test_finalize(na_test_info);
 diff --git a/src/na/na_ofi.c b/src/na/na_ofi.c
-index 5c13067..3f88877 100644
+index 5c13067a..3f888777 100644
 --- a/src/na/na_ofi.c
 +++ b/src/na/na_ofi.c
 @@ -1,5 +1,5 @@
@@ -265,7 +265,7 @@ index 5c13067..3f88877 100644
          "fi_av_insert() failed, rc: %d(%s)", rc, fi_strerror((int) -rc));
  
      hg_thread_rwlock_wrlock(&domain->rwlock);
-@@ -1922,8 +1991,9 @@ out:
+@@ -1922,8 +1991,9 @@ na_ofi_domain_close(struct na_ofi_domain *na_ofi_domain)
  /*---------------------------------------------------------------------------*/
  static na_return_t
  na_ofi_endpoint_open(const struct na_ofi_domain *na_ofi_domain,
@@ -309,7 +309,7 @@ index 5c13067..3f88877 100644
          &na_ofi_endpoint->fi_prov);
      NA_CHECK_ERROR(rc != 0, out, ret, NA_PROTOCOL_ERROR,
          "fi_getinfo(%s) failed, rc: %d(%s)", node, rc, fi_strerror(-rc));
-@@ -2174,9 +2260,14 @@ retry:
+@@ -2174,9 +2260,14 @@ na_ofi_get_ep_addr(na_class_t *na_class, struct na_ofi_addr **na_ofi_addr_ptr)
          free(addr);
          goto retry;
      }
@@ -327,7 +327,7 @@ index 5c13067..3f88877 100644
  
      na_ofi_addr->addr = addr;
      na_ofi_addr->addrlen = addrlen;
-@@ -2202,6 +2293,7 @@ error:
+@@ -2202,6 +2293,7 @@ na_ofi_get_ep_addr(na_class_t *na_class, struct na_ofi_addr **na_ofi_addr_ptr)
  static na_return_t
  na_ofi_get_uri(na_class_t *na_class, const void *addr, char **uri_ptr)
  {
@@ -491,6 +491,3 @@ index 5c13067..3f88877 100644
          NA_CHECK_NA_ERROR(out, ret,
              "Could not read events from context CQ");
  
--- 
-2.22.0
-

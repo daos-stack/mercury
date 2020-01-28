@@ -14,7 +14,7 @@ Patch3:		https://github.com/mercury-hpc/mercury/compare/f0b9f992793be46f1c6ae47b
 Patch4:		https://github.com/mercury-hpc/mercury/compare/616fee16a3c09eb93d804b627e64ea1c84c6b4d4...7b529b63e4003fb15ebdbf2dfdf29ab2a3d3c132.patch
 Patch5:		https://github.com/mercury-hpc/mercury/compare/7b529b63e4003fb15ebdbf2dfdf29ab2a3d3c132...9889a0d0ba8854c1a0c2bd186a01fac4f57edada.patch
 Patch6:		https://github.com/mercury-hpc/mercury/compare/9889a0d0ba8854c1a0c2bd186a01fac4f57edada...c2c262813811c3ede28ee32fdebbffd417a7cb80.patch
-Patch7:		0001-NA-OFI-use-ip-addr-for-psm2.patch
+Patch7:		https://github.com/mercury-hpc/mercury/compare/c2c262813811c3ede28ee32fdebbffd417a7cb80...b580971d17ad460529a4516e4c79f0aead7b1515.patch
 
 BuildRequires:	openpa-devel
 BuildRequires:	libfabric-devel >= 1.5.0
