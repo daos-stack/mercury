@@ -13,6 +13,8 @@ Patch2:		https://github.com/mercury-hpc/mercury/compare/cc0807e8377e129945834d29
 Patch3:		https://github.com/mercury-hpc/mercury/compare/f0b9f992793be46f1c6ae47b30d1c3ccb525cfbf...616fee16a3c09eb93d804b627e64ea1c84c6b4d4.patch
 Patch4:		https://github.com/mercury-hpc/mercury/compare/616fee16a3c09eb93d804b627e64ea1c84c6b4d4...7b529b63e4003fb15ebdbf2dfdf29ab2a3d3c132.patch
 Patch5:		https://github.com/mercury-hpc/mercury/compare/7b529b63e4003fb15ebdbf2dfdf29ab2a3d3c132...9889a0d0ba8854c1a0c2bd186a01fac4f57edada.patch
+Patch6:		https://github.com/mercury-hpc/mercury/compare/9889a0d0ba8854c1a0c2bd186a01fac4f57edada...c2c262813811c3ede28ee32fdebbffd417a7cb80.patch
+Patch7:		0001-NA-OFI-use-ip-addr-for-psm2.patch
 
 BuildRequires:	openpa-devel
 BuildRequires:	libfabric-devel >= 1.5.0
@@ -92,6 +94,10 @@ cd build
 
 
 %changelog
+* Tue Jan 28 2020 Yulu Jia <yulu.jia@intel.com> - 1.0.1-22
+- Update to c2c2628
+- Apply patch to enable ip:port URI format for psm2
+
 * Mon Dec 2 2019 Alexander Oganezov <alexander.a.oganezov@intel> - 1.0.1-21
 - Removed sl_patch on top of 7b529b
 - Updated to 9889a0
