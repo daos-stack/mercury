@@ -1,0 +1,589 @@
+From beadaeac964595d9e64a06f9e12a20337aba53c6 Mon Sep 17 00:00:00 2001
+From: Jerome Soumagne <jsoumagne@hdfgroup.org>
+Date: Wed, 29 Jan 2020 15:20:27 -0600
+Subject: [PATCH] HG: addr HG_Addr_cmp() to compare two addresses
+
+Add corresponding NA implementations
+---
+ src/mercury.c      | 15 ++++++++++
+ src/mercury.h      | 16 +++++++++++
+ src/mercury_core.c | 24 ++++++++++++++++
+ src/mercury_core.h | 16 +++++++++++
+ src/na/na.c        | 80 +++++++++++++++++++++++++++++++++++-------------------
+ src/na/na.h        | 22 +++++++++++++++
+ src/na/na_bmi.c    | 20 ++++++++++++++
+ src/na/na_cci.c    |  1 +
+ src/na/na_mpi.c    | 21 ++++++++++++++
+ src/na/na_ofi.c    | 74 ++++++++++++++++++++++++++++++++++++++------------
+ src/na/na_sm.c     | 20 ++++++++++++++
+ 11 files changed, 263 insertions(+), 46 deletions(-)
+
+diff --git a/src/mercury.c b/src/mercury.c
+index fcf0a42..4101ffe 100644
+--- a/src/mercury.c
++++ b/src/mercury.c
+@@ -1549,6 +1549,21 @@ done:
+ }
+ 
+ /*---------------------------------------------------------------------------*/
++hg_bool_t
++HG_Addr_cmp(hg_class_t *hg_class, hg_addr_t addr1, hg_addr_t addr2)
++{
++    hg_bool_t ret = HG_FALSE;
++
++    HG_CHECK_ERROR_NORET(hg_class == NULL, done, "NULL HG class");
++
++    ret = HG_Core_addr_cmp(hg_class->core_class, (hg_core_addr_t) addr1,
++        (hg_core_addr_t) addr2);
++
++done:
++    return ret;
++}
++
++/*---------------------------------------------------------------------------*/
+ hg_return_t
+ HG_Addr_to_string(hg_class_t *hg_class, char *buf, hg_size_t *buf_size,
+     hg_addr_t addr)
+diff --git a/src/mercury.h b/src/mercury.h
+index 91e4778..d8d385d 100644
+--- a/src/mercury.h
++++ b/src/mercury.h
+@@ -651,6 +651,22 @@ HG_Addr_dup(
+         );
+ 
+ /**
++ * Compare two addresses.
++ *
++ * \param hg_class [IN]         pointer to HG class
++ * \param addr1 [IN]            abstract address
++ * \param addr2 [IN]            abstract address
++ *
++ * \return HG_TRUE if addresses are determined to be equal, HG_FALSE otherwise
++ */
++HG_PUBLIC hg_bool_t
++HG_Addr_cmp(
++        hg_class_t *hg_class,
++        hg_addr_t addr1,
++        hg_addr_t addr2
++        );
++
++/**
+  * Convert an addr to a string (returned string includes the terminating
+  * null byte '\0'). If buf is NULL, the address is not converted and only
+  * the required size of the buffer is returned. If the input value passed
+diff --git a/src/mercury_core.c b/src/mercury_core.c
+index f1e45f9..d267592 100644
+--- a/src/mercury_core.c
++++ b/src/mercury_core.c
+@@ -4122,6 +4122,30 @@ done:
+ }
+ 
+ /*---------------------------------------------------------------------------*/
++hg_bool_t
++HG_Core_addr_cmp(hg_core_class_t *hg_core_class, hg_core_addr_t addr1,
++    hg_core_addr_t addr2)
++{
++    hg_bool_t ret = HG_FALSE;
++
++    HG_CHECK_ERROR_NORET(hg_core_class == NULL, done, "NULL HG core class");
++
++    if (addr1 == HG_CORE_ADDR_NULL && addr2 == HG_CORE_ADDR_NULL)
++        HG_GOTO_DONE(done, ret, HG_TRUE);
++
++    if (addr1 == HG_CORE_ADDR_NULL || addr2 == HG_CORE_ADDR_NULL)
++        HG_GOTO_DONE(done, ret, HG_FALSE);
++
++    ret = NA_Addr_cmp(
++        ((struct hg_core_private_addr *) addr1)->core_addr.na_class,
++        ((struct hg_core_private_addr *) addr1)->core_addr.na_addr,
++        ((struct hg_core_private_addr *) addr2)->core_addr.na_addr);
++
++done:
++    return ret;
++}
++
++/*---------------------------------------------------------------------------*/
+ hg_return_t
+ HG_Core_addr_to_string(hg_core_class_t *hg_core_class, char *buf,
+     hg_size_t *buf_size, hg_core_addr_t addr)
+diff --git a/src/mercury_core.h b/src/mercury_core.h
+index 46ca770..ce5974b 100644
+--- a/src/mercury_core.h
++++ b/src/mercury_core.h
+@@ -648,6 +648,22 @@ HG_Core_addr_self(
+         );
+ 
+ /**
++ * Compare two addresses.
++ *
++ * \param hg_core_class [IN]    pointer to HG core class
++ * \param addr1 [IN]            abstract address
++ * \param addr2 [IN]            abstract address
++ *
++ * \return HG_TRUE if addresses are determined to be equal, HG_FALSE otherwise
++ */
++HG_PUBLIC hg_bool_t
++HG_Core_addr_cmp(
++        hg_core_class_t *hg_core_class,
++        hg_core_addr_t addr1,
++        hg_core_addr_t addr2
++        );
++
++/**
+  * Duplicate an existing HG abstract address. The duplicated address can be
+  * stored for later use and the origin address be freed safely. The duplicated
+  * address must be freed with HG_Core_addr_free().
+diff --git a/src/na/na.c b/src/na/na.c
+index 9cb8ecd..061db33 100644
+--- a/src/na/na.c
++++ b/src/na/na.c
+@@ -607,21 +607,22 @@ done:
+ 
+ /*---------------------------------------------------------------------------*/
+ na_return_t
+-NA_Addr_self(na_class_t *na_class, na_addr_t *addr)
++NA_Addr_free(na_class_t *na_class, na_addr_t addr)
+ {
+     na_return_t ret = NA_SUCCESS;
+ 
+     NA_CHECK_ERROR(na_class == NULL, done, ret, NA_INVALID_ARG,
+         "NULL NA class");
+-    NA_CHECK_ERROR(addr == NULL, done, ret, NA_INVALID_ARG,
+-        "NULL pointer to na_addr_t");
++    if (addr == NA_ADDR_NULL)
++        /* Nothing to do */
++        goto done;
+ 
+     NA_CHECK_ERROR(na_class->ops == NULL, done, ret, NA_INVALID_ARG,
+         "NULL NA class ops");
+-    NA_CHECK_ERROR(na_class->ops->addr_self == NULL, done, ret,
+-        NA_OPNOTSUPPORTED, "addr_self plugin callback is not defined");
++    NA_CHECK_ERROR(na_class->ops->addr_free == NULL, done, ret,
++        NA_OPNOTSUPPORTED, "addr_free plugin callback is not defined");
+ 
+-    ret = na_class->ops->addr_self(na_class, addr);
++    ret = na_class->ops->addr_free(na_class, addr);
+ 
+ done:
+     return ret;
+@@ -629,23 +630,20 @@ done:
+ 
+ /*---------------------------------------------------------------------------*/
+ na_return_t
+-NA_Addr_dup(na_class_t *na_class, na_addr_t addr, na_addr_t *new_addr)
++NA_Addr_set_remove(na_class_t *na_class, na_addr_t addr)
+ {
+     na_return_t ret = NA_SUCCESS;
+ 
+     NA_CHECK_ERROR(na_class == NULL, done, ret, NA_INVALID_ARG,
+         "NULL NA class");
+-    NA_CHECK_ERROR(addr == NA_ADDR_NULL, done, ret, NA_INVALID_ARG,
+-        "NULL addr");
+-    NA_CHECK_ERROR(new_addr == NULL, done, ret, NA_INVALID_ARG,
+-        "NULL pointer to NA addr");
++    if (addr == NA_ADDR_NULL)
++        /* Nothing to do */
++        goto done;
+ 
+     NA_CHECK_ERROR(na_class->ops == NULL, done, ret, NA_INVALID_ARG,
+         "NULL NA class ops");
+-    NA_CHECK_ERROR(na_class->ops->addr_dup == NULL, done, ret,
+-        NA_OPNOTSUPPORTED, "addr_dup plugin callback is not defined");
+-
+-    ret = na_class->ops->addr_dup(na_class, addr, new_addr);
++    if (na_class->ops->addr_set_remove)
++        ret = na_class->ops->addr_set_remove(na_class, addr);
+ 
+ done:
+     return ret;
+@@ -653,22 +651,21 @@ done:
+ 
+ /*---------------------------------------------------------------------------*/
+ na_return_t
+-NA_Addr_free(na_class_t *na_class, na_addr_t addr)
++NA_Addr_self(na_class_t *na_class, na_addr_t *addr)
+ {
+     na_return_t ret = NA_SUCCESS;
+ 
+     NA_CHECK_ERROR(na_class == NULL, done, ret, NA_INVALID_ARG,
+         "NULL NA class");
+-    if (addr == NA_ADDR_NULL)
+-        /* Nothing to do */
+-        goto done;
++    NA_CHECK_ERROR(addr == NULL, done, ret, NA_INVALID_ARG,
++        "NULL pointer to na_addr_t");
+ 
+     NA_CHECK_ERROR(na_class->ops == NULL, done, ret, NA_INVALID_ARG,
+         "NULL NA class ops");
+-    NA_CHECK_ERROR(na_class->ops->addr_free == NULL, done, ret,
+-        NA_OPNOTSUPPORTED, "addr_free plugin callback is not defined");
++    NA_CHECK_ERROR(na_class->ops->addr_self == NULL, done, ret,
++        NA_OPNOTSUPPORTED, "addr_self plugin callback is not defined");
+ 
+-    ret = na_class->ops->addr_free(na_class, addr);
++    ret = na_class->ops->addr_self(na_class, addr);
+ 
+ done:
+     return ret;
+@@ -676,20 +673,47 @@ done:
+ 
+ /*---------------------------------------------------------------------------*/
+ na_return_t
+-NA_Addr_set_remove(na_class_t *na_class, na_addr_t addr)
++NA_Addr_dup(na_class_t *na_class, na_addr_t addr, na_addr_t *new_addr)
+ {
+     na_return_t ret = NA_SUCCESS;
+ 
+     NA_CHECK_ERROR(na_class == NULL, done, ret, NA_INVALID_ARG,
+         "NULL NA class");
+-    if (addr == NA_ADDR_NULL)
+-        /* Nothing to do */
+-        goto done;
++    NA_CHECK_ERROR(addr == NA_ADDR_NULL, done, ret, NA_INVALID_ARG,
++        "NULL addr");
++    NA_CHECK_ERROR(new_addr == NULL, done, ret, NA_INVALID_ARG,
++        "NULL pointer to NA addr");
+ 
+     NA_CHECK_ERROR(na_class->ops == NULL, done, ret, NA_INVALID_ARG,
+         "NULL NA class ops");
+-    if (na_class->ops->addr_set_remove)
+-        ret = na_class->ops->addr_set_remove(na_class, addr);
++    NA_CHECK_ERROR(na_class->ops->addr_dup == NULL, done, ret,
++        NA_OPNOTSUPPORTED, "addr_dup plugin callback is not defined");
++
++    ret = na_class->ops->addr_dup(na_class, addr, new_addr);
++
++done:
++    return ret;
++}
++
++/*---------------------------------------------------------------------------*/
++na_bool_t
++NA_Addr_cmp(na_class_t *na_class, na_addr_t addr1, na_addr_t addr2)
++{
++    na_bool_t ret = NA_FALSE;
++
++    NA_CHECK_ERROR_NORET(na_class == NULL, done, "NULL NA class");
++
++    if (addr1 == NA_ADDR_NULL && addr2 == NA_ADDR_NULL)
++        NA_GOTO_DONE(done, ret, NA_TRUE);
++
++    if (addr1 == NA_ADDR_NULL || addr2 == NA_ADDR_NULL)
++        NA_GOTO_DONE(done, ret, NA_FALSE);
++
++    NA_CHECK_ERROR_NORET(na_class->ops == NULL, done, "NULL NA class ops");
++    NA_CHECK_ERROR_NORET(na_class->ops->addr_cmp == NULL, done,
++        "addr_cmp plugin callback is not defined");
++
++    ret = na_class->ops->addr_cmp(na_class, addr1, addr2);
+ 
+ done:
+     return ret;
+diff --git a/src/na/na.h b/src/na/na.h
+index b3a3d7d..6bdc939 100644
+--- a/src/na/na.h
++++ b/src/na/na.h
+@@ -313,6 +313,22 @@ NA_Addr_dup(
+         );
+ 
+ /**
++ * Compare two addresses.
++ *
++ * \param na_class [IN/OUT]     pointer to NA class
++ * \param addr1 [IN]            abstract address
++ * \param addr2 [IN]            abstract address
++ *
++ * \return NA_TRUE if addresses are determined to be equal, NA_FALSE otherwise
++ */
++NA_PUBLIC na_bool_t
++NA_Addr_cmp(
++        na_class_t *na_class,
++        na_addr_t   addr1,
++        na_addr_t   addr2
++        );
++
++/**
+  * Test whether address is self or not.
+  *
+  * \param na_class [IN/OUT]     pointer to NA class
+@@ -1183,6 +1199,12 @@ struct na_class_ops {
+             na_addr_t  *new_addr
+             );
+     na_bool_t
++    (*addr_cmp)(
++            na_class_t *na_class,
++            na_addr_t   addr1,
++            na_addr_t   addr2
++            );
++    na_bool_t
+     (*addr_is_self)(
+             na_class_t *na_class,
+             na_addr_t   addr
+diff --git a/src/na/na_bmi.c b/src/na/na_bmi.c
+index 6eedcbe..9796bae 100644
+--- a/src/na/na_bmi.c
++++ b/src/na/na_bmi.c
+@@ -254,6 +254,14 @@ na_bmi_addr_dup(
+         na_addr_t  *new_addr
+         );
+ 
++/* addr_cmp */
++static na_bool_t
++na_bmi_addr_cmp(
++        na_class_t *na_class,
++        na_addr_t addr1,
++        na_addr_t addr2
++        );
++
+ /* addr_is_self */
+ static na_bool_t
+ na_bmi_addr_is_self(
+@@ -525,6 +533,7 @@ const struct na_class_ops NA_PLUGIN_OPS(bmi) = {
+         NULL,                                 /* addr_set_remove */
+         na_bmi_addr_self,                     /* addr_self */
+         na_bmi_addr_dup,                      /* addr_dup */
++        na_bmi_addr_cmp,                      /* addr_cmp */
+         na_bmi_addr_is_self,                  /* addr_is_self */
+         na_bmi_addr_to_string,                /* addr_to_string */
+         NULL,                                 /* addr_get_serialize_size */
+@@ -1017,6 +1026,17 @@ done:
+ 
+ /*---------------------------------------------------------------------------*/
+ static na_bool_t
++na_bmi_addr_cmp(na_class_t NA_UNUSED *na_class, na_addr_t addr1,
++    na_addr_t addr2)
++{
++    struct na_bmi_addr *na_bmi_addr1 = (struct na_bmi_addr *) addr1;
++    struct na_bmi_addr *na_bmi_addr2 = (struct na_bmi_addr *) addr2;
++
++    return (na_bmi_addr1->bmi_addr == na_bmi_addr2->bmi_addr);
++}
++
++/*---------------------------------------------------------------------------*/
++static na_bool_t
+ na_bmi_addr_is_self(na_class_t NA_UNUSED *na_class, na_addr_t addr)
+ {
+     struct na_bmi_addr *na_bmi_addr = (struct na_bmi_addr *) addr;
+diff --git a/src/na/na_cci.c b/src/na/na_cci.c
+index 6ce6c9e..84f3bee 100644
+--- a/src/na/na_cci.c
++++ b/src/na/na_cci.c
+@@ -384,6 +384,7 @@ const struct na_class_ops NA_PLUGIN_OPS(cci) = {
+     NULL,                                   /* addr_set_remove */
+     na_cci_addr_self,                       /* addr_self */
+     na_cci_addr_dup,                        /* addr_dup */
++    NULL,                                   /* addr_cmp */
+     na_cci_addr_is_self,                    /* addr_is_self */
+     na_cci_addr_to_string,                  /* addr_to_string */
+     NULL,                                   /* addr_get_serialize_size */
+diff --git a/src/na/na_mpi.c b/src/na/na_mpi.c
+index 03137cd..e63b8c8 100644
+--- a/src/na/na_mpi.c
++++ b/src/na/na_mpi.c
+@@ -307,6 +307,14 @@ na_mpi_addr_free(
+         na_addr_t   addr
+         );
+ 
++/* addr_cmp */
++static na_bool_t
++na_mpi_addr_cmp(
++        na_class_t *na_class,
++        na_addr_t addr1,
++        na_addr_t addr2
++        );
++
+ /* addr_is_self */
+ static na_bool_t
+ na_mpi_addr_is_self(
+@@ -567,6 +575,7 @@ const struct na_class_ops NA_PLUGIN_OPS(mpi) = {
+         NULL,                                 /* addr_set_remove */
+         na_mpi_addr_self,                     /* addr_self */
+         NULL,                                 /* addr_dup */
++        na_mpi_addr_cmp,                      /* addr_cmp */
+         na_mpi_addr_is_self,                  /* addr_is_self */
+         na_mpi_addr_to_string,                /* addr_to_string */
+         NULL,                                 /* addr_get_serialize_size */
+@@ -1457,6 +1466,18 @@ na_mpi_addr_free(na_class_t *na_class, na_addr_t addr)
+ 
+ /*---------------------------------------------------------------------------*/
+ static na_bool_t
++na_mpi_addr_cmp(na_class_t NA_UNUSED *na_class, na_addr_t addr1,
++    na_addr_t addr2)
++{
++    struct na_mpi_addr *na_mpi_addr1 = (struct na_mpi_addr *) addr1;
++    struct na_mpi_addr *na_mpi_addr2 = (struct na_mpi_addr *) addr2;
++
++    return (na_mpi_addr1->comm == na_mpi_addr2->comm)
++        && (na_mpi_addr1->rank == na_mpi_addr2->rank);
++}
++
++/*---------------------------------------------------------------------------*/
++static na_bool_t
+ na_mpi_addr_is_self(na_class_t NA_UNUSED *na_class, na_addr_t addr)
+ {
+     struct na_mpi_addr *na_mpi_addr = (struct na_mpi_addr *) addr;
+diff --git a/src/na/na_ofi.c b/src/na/na_ofi.c
+index ec0f619..1d1fe53 100644
+--- a/src/na/na_ofi.c
++++ b/src/na/na_ofi.c
+@@ -786,6 +786,14 @@ na_ofi_addr_lookup(na_class_t *na_class, na_context_t *context,
+ static na_return_t
+ na_ofi_addr_lookup2(na_class_t *na_class, const char *name, na_addr_t *addr);
+ 
++/* addr_free */
++static NA_INLINE na_return_t
++na_ofi_addr_free(na_class_t *na_class, na_addr_t addr);
++
++/* addr_set_remove */
++static NA_INLINE na_return_t
++na_ofi_addr_set_remove(na_class_t *na_class, na_addr_t addr);
++
+ /* addr_self */
+ static NA_INLINE na_return_t
+ na_ofi_addr_self(na_class_t *na_class, na_addr_t *addr);
+@@ -794,13 +802,9 @@ na_ofi_addr_self(na_class_t *na_class, na_addr_t *addr);
+ static NA_INLINE na_return_t
+ na_ofi_addr_dup(na_class_t *na_class, na_addr_t addr, na_addr_t *new_addr);
+ 
+-/* addr_free */
+-static NA_INLINE na_return_t
+-na_ofi_addr_free(na_class_t *na_class, na_addr_t addr);
+-
+-/* addr_set_remove */
+-static NA_INLINE na_return_t
+-na_ofi_addr_set_remove(na_class_t *na_class, na_addr_t addr);
++/* addr_dup */
++static na_bool_t
++na_ofi_addr_cmp(na_class_t *na_class, na_addr_t addr1, na_addr_t addr2);
+ 
+ /* addr_is_self */
+ static NA_INLINE na_bool_t
+@@ -960,6 +964,7 @@ const struct na_class_ops NA_PLUGIN_OPS(ofi) = {
+     na_ofi_addr_set_remove,                 /* addr_set_remove */
+     na_ofi_addr_self,                       /* addr_self */
+     na_ofi_addr_dup,                        /* addr_dup */
++    na_ofi_addr_cmp,                        /* addr_cmp */
+     na_ofi_addr_is_self,                    /* addr_is_self */
+     na_ofi_addr_to_string,                  /* addr_to_string */
+     na_ofi_addr_get_serialize_size,         /* addr_get_serialize_size */
+@@ -3535,6 +3540,24 @@ error:
+ 
+ /*---------------------------------------------------------------------------*/
+ static NA_INLINE na_return_t
++na_ofi_addr_free(na_class_t NA_UNUSED *na_class, na_addr_t addr)
++{
++    na_ofi_addr_decref((struct na_ofi_addr *) addr);
++
++    return NA_SUCCESS;
++}
++
++/*---------------------------------------------------------------------------*/
++static NA_INLINE na_return_t
++na_ofi_addr_set_remove(na_class_t NA_UNUSED *na_class, na_addr_t addr)
++{
++    ((struct na_ofi_addr *) addr)->remove = NA_TRUE;
++
++    return NA_SUCCESS;
++}
++
++/*---------------------------------------------------------------------------*/
++static NA_INLINE na_return_t
+ na_ofi_addr_self(na_class_t *na_class, na_addr_t *addr)
+ {
+     struct na_ofi_class *priv = NA_OFI_CLASS(na_class);
+@@ -3560,21 +3583,36 @@ na_ofi_addr_dup(na_class_t NA_UNUSED *na_class, na_addr_t addr,
+ }
+ 
+ /*---------------------------------------------------------------------------*/
+-static NA_INLINE na_return_t
+-na_ofi_addr_free(na_class_t NA_UNUSED *na_class, na_addr_t addr)
++static na_bool_t
++na_ofi_addr_cmp(na_class_t NA_UNUSED *na_class, na_addr_t addr1,
++    na_addr_t addr2)
+ {
+-    na_ofi_addr_decref((struct na_ofi_addr *) addr);
++    struct na_ofi_addr *na_ofi_addr1 = (struct na_ofi_addr *) addr1;
++    struct na_ofi_addr *na_ofi_addr2 = (struct na_ofi_addr *) addr2;
+ 
+-    return NA_SUCCESS;
+-}
++    if ((na_ofi_addr1 == na_ofi_addr2)
++        || (na_ofi_addr1->fi_addr == na_ofi_addr2->fi_addr))
++        return NA_TRUE;
+ 
+-/*---------------------------------------------------------------------------*/
+-static NA_INLINE na_return_t
+-na_ofi_addr_set_remove(na_class_t NA_UNUSED *na_class, na_addr_t addr)
+-{
+-    ((struct na_ofi_addr *) addr)->remove = NA_TRUE;
++    /* If we don't have the addr, look it up from AV */
++    if (!na_ofi_addr1->addr) {
++        na_return_t na_ret = na_ofi_av_lookup(na_ofi_addr1->domain,
++            na_ofi_addr1->fi_addr, &na_ofi_addr1->addr, &na_ofi_addr1->addrlen);
++        NA_CHECK_NA_ERROR(out, na_ret, "Could not get addr from AV");
++    }
++    if (!na_ofi_addr2->addr) {
++        na_return_t na_ret = na_ofi_av_lookup(na_ofi_addr2->domain,
++            na_ofi_addr2->fi_addr, &na_ofi_addr2->addr, &na_ofi_addr2->addrlen);
++        NA_CHECK_NA_ERROR(out, na_ret, "Could not get addr from AV");
++    }
+ 
+-    return NA_SUCCESS;
++    if ((na_ofi_addr1->addrlen == na_ofi_addr2->addrlen)
++        && (memcmp(na_ofi_addr1->addr, na_ofi_addr2->addr,
++            na_ofi_addr1->addrlen) == 0))
++        return NA_TRUE;
++
++out:
++    return NA_FALSE;
+ }
+ 
+ /*---------------------------------------------------------------------------*/
+diff --git a/src/na/na_sm.c b/src/na/na_sm.c
+index 38463ea..61e4df5 100644
+--- a/src/na/na_sm.c
++++ b/src/na/na_sm.c
+@@ -678,6 +678,14 @@ na_sm_addr_dup(
+     na_addr_t  *new_addr
+     );
+ 
++/* addr_cmp */
++static na_bool_t
++na_sm_addr_cmp(
++    na_class_t *na_class,
++    na_addr_t   addr1,
++    na_addr_t   addr2
++    );
++
+ /* addr_is_self */
+ static NA_INLINE na_bool_t
+ na_sm_addr_is_self(
+@@ -911,6 +919,7 @@ const struct na_class_ops NA_PLUGIN_OPS(sm) = {
+     NULL,                                   /* addr_set_remove */
+     na_sm_addr_self,                        /* addr_self */
+     na_sm_addr_dup,                         /* addr_dup */
++    na_sm_addr_cmp,                         /* addr_cmp */
+     na_sm_addr_is_self,                     /* addr_is_self */
+     na_sm_addr_to_string,                   /* addr_to_string */
+     NULL,                                   /* addr_get_serialize_size */
+@@ -3090,6 +3099,17 @@ na_sm_addr_dup(na_class_t NA_UNUSED *na_class, na_addr_t addr,
+ }
+ 
+ /*---------------------------------------------------------------------------*/
++static na_bool_t
++na_sm_addr_cmp(na_class_t NA_UNUSED *na_class, na_addr_t addr1, na_addr_t addr2)
++{
++    struct na_sm_addr *na_sm_addr1 = (struct na_sm_addr *) addr1;
++    struct na_sm_addr *na_sm_addr2 = (struct na_sm_addr *) addr2;
++
++    return (na_sm_addr1->pid == na_sm_addr2->pid)
++        && (na_sm_addr1->id == na_sm_addr2->id);
++}
++
++/*---------------------------------------------------------------------------*/
+ static NA_INLINE na_bool_t
+ na_sm_addr_is_self(na_class_t NA_UNUSED *na_class, na_addr_t addr)
+ {
+-- 
+1.8.3.1
+
