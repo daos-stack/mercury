@@ -21,6 +21,7 @@ URL:		http://mercury-hpc.github.io/documentation/
 Source0:	https://github.com/mercury-hpc/%{name}/archive/v%{version}.tar.gz
 Patch1:		https://github.com/mercury-hpc/mercury/compare/v2.0.0a1..%{mercury_commit}.patch
 Patch2:		https://github.com/mercury-hpc/mercury/compare/c2c262813811c3ede28ee32fdebbffd417a7cb80..6cbd9d4402db6a34dfb7e9dbf2e826ee90c6a64a.patch
+Patch3:		https://github.com/mercury-hpc/mercury/compare/0001-HG-addr-HG_Addr_cmp-to-compare-two-addresses.patch
 Source1:	https://github.com/mercury-hpc/kwsys/archive/%{shortkwsys_commit}.tar.gz
 Source2:	https://github.com/mercury-hpc/preprocessor/archive/%{shortboost_commit}.tar.gz
 Source3:	https://github.com/mercury-hpc/mchecksum/archive/%{shortmchecksum_commit}.tar.gz
@@ -120,6 +121,9 @@ cd build
 
 
 %changelog
+* Tue Feb 11 2020 Vikram Chhabra <vikram.chhabra@intel.com> - 2.0.0a1-0.3
+- Update patch to incorporate new HG API to compare HG Addr's
+
 * Sun Feb 09 2020 Yulu Jia <yulu.jia@intel.com> - 2.0.0a1-0.2
 - Update patch to enable ip:port URI format for psm2
 
