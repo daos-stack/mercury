@@ -1,4 +1,4 @@
-%global mercury_commit c2c262813811c3ede28ee32fdebbffd417a7cb80
+%global mercury_commit 951d32a4a07ab4b6fae9655dfbbfdbf4f02838fd
 %global shortmercury_commit %%(c=%%{mercury_commit}; echo ${c:0:7})
 %global kwsys_commit 9da3e5bc847fa4187f42f60700e343a9ed09a161
 %global shortkwsys_commit %%(c=%%{kwsys_commit}; echo ${c:0:7})
@@ -118,6 +118,9 @@ cd build
 
 
 %changelog
+* Thu Feb 20 2020 Vikram Chhabra <vikram.chhabra@intel.com> - 2.0.0a1-0.4
+- Pulled in new HG_Addr_cmp API
+
 * Tue Feb 11 2020 Yulu Jia <yulu.jia@intel.com> - 2.0.0a1-0.3
 - Remove nameserver patch
 
