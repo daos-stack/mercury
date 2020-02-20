@@ -119,7 +119,7 @@ cd build
 
 %changelog
 * Thu Feb 20 2020 Vikram Chhabra <vikram.chhabra@intel.com> - 2.0.0a1-0.4
-- Pulled in new HG_Addr_cmp API
+- Pulled in new HG_Addr_cmp API.
 
 * Tue Feb 11 2020 Yulu Jia <yulu.jia@intel.com> - 2.0.0a1-0.3
 - Remove nameserver patch
