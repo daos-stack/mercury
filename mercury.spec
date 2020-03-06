@@ -11,7 +11,7 @@
 
 Name: mercury
 Version: 2.0.0a1
-Release: 0.3.git.%{shortmercury_commit}%{?dist}
+Release: 0.4.git.%{shortmercury_commit}%{?dist}
 
 Summary:	Mercury
 
