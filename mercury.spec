@@ -119,7 +119,7 @@ cd build
 
 %changelog
 * Thu Mar 05 2020 Vikram Chhabra <vikram.chhabra@intel.com> - 2.0.0a1-0.4
-- Udated to latest master with HG_Forward fix.
+- Updated to latest master with HG_Forward fix.
 
 * Tue Feb 11 2020 Yulu Jia <yulu.jia@intel.com> - 2.0.0a1-0.3
 - Remove nameserver patch
