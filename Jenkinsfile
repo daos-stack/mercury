@@ -41,4 +41,5 @@
 //@Library(value="pipeline-lib@your_branch") _
 
 // ubuntu deps need to catch up
-packageBuildingPipeline(['distros': ['centos7', 'leap15']])
+packageBuildingPipeline(['distros': ['centos7', 'leap15'],
+                         'publish_branch': 'release/0.9'])
