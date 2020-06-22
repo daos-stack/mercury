@@ -107,7 +107,7 @@ cd build
 #%endif
 
 %files
-%license COPYRIGHT
+%license COPYING
 %{_libdir}/*.so.*
 %doc
 
