@@ -11,12 +11,12 @@
 
 Name: mercury
 Version: 2.0.0a1
-Release: 0.8.git.%{shortmercury_commit}%{?dist}
+Release: 0.9.git.%{shortmercury_commit}%{?dist}
 
 Summary:	Mercury
 
 Group:		Development/Libraries
-License:	ANL
+License:	Aregonee National Laboratory, Department of Energy License
 URL:		http://mercury-hpc.github.io/documentation/
 Source0:	https://github.com/mercury-hpc/%{name}/archive/v%{version}.tar.gz
 Patch1:		https://github.com/mercury-hpc/mercury/compare/v2.0.0a1..%{mercury_commit}.patch
@@ -107,6 +107,7 @@ cd build
 #%endif
 
 %files
+%license COPYRIGHT
 %{_libdir}/*.so.*
 %doc
 
@@ -118,6 +119,10 @@ cd build
 
 
 %changelog
+* Mon Jun 22 2020 Brian J. Murryyell <brian.murrell@intel> - 2.0.0a1-0.9
+- Fix License:
+- Add %license
+
 * Thu Apr 9 2020 Alexander A Oganezov <alexander.a.oganezov@intel.com> - 2.0.0a1-0.8
 - Update to 4871023058887444d47ead4d089c99db979f3d93
 
