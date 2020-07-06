@@ -61,7 +61,7 @@ Mercury devel
 %autosetup -p1
 %else
 %setup -q -n mercury-%dl_version
-%patch1 -p1
+# %patch1 -p1
 rmdir Testing/driver/kwsys/
 tar -C Testing/driver/ -xzf %{SOURCE1}
 mv Testing/driver/kwsys{-%{kwsys_commit},}
