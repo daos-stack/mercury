@@ -1,4 +1,4 @@
-%global mercury_commit 4871023058887444d47ead4d089c99db979f3d93
+%global mercury_commit 1794ba75ab3d988951eb16140a5124b26e9ef9bf
 %global shortmercury_commit %%(c=%%{mercury_commit}; echo ${c:0:7})
 %global kwsys_commit 9da3e5bc847fa4187f42f60700e343a9ed09a161
 %global shortkwsys_commit %%(c=%%{kwsys_commit}; echo ${c:0:7})
