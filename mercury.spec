@@ -8,11 +8,11 @@
 %global shortmchecksum_commit %%(c=%%{mchecksum_commit}; echo ${c:0:7})
 
 %bcond_with use_release
-%global dl_version 2.0.0a1
+%global dl_version 2.0.0rc1
 
 Name: mercury
-Version: 2.0.0~a1
-Release: 2.git.%{shortmercury_commit}%{?dist}
+Version: 2.0.0rc1
+Release: 1.git.%{shortmercury_commit}%{?dist}
 
 Summary:	Mercury
 
@@ -20,7 +20,6 @@ Group:		Development/Libraries
 License:	Aregonee National Laboratory, Department of Energy License
 URL:		http://mercury-hpc.github.io/documentation/
 Source0:	https://github.com/mercury-hpc/%{name}/archive/v%{dl_version}.tar.gz
-Patch1:		https://github.com/mercury-hpc/mercury/compare/v2.0.0a1..%{mercury_commit}.patch
 Source1:	https://github.com/mercury-hpc/kwsys/archive/%{shortkwsys_commit}.tar.gz
 Source2:	https://github.com/mercury-hpc/preprocessor/archive/%{shortboost_commit}.tar.gz
 Source3:	https://github.com/mercury-hpc/mchecksum/archive/%{shortmchecksum_commit}.tar.gz
@@ -121,6 +120,9 @@ cd build
 
 
 %changelog
+* Mon Jul 6 2020 Alexander A Oganezov <alexander.a.oganezov@intel.com> - 2.0.0rc1-1
+- Update to tag v2.0.0rc1
+
 * Mon Jun 22 2020 Brian J. Murryyell <brian.murrell@intel> - 2.0.0~a1-2
 - Fix License:
 - Add %license
