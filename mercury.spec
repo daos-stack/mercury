@@ -118,7 +118,7 @@ cd build
 
 %changelog
 * Mon Jul 6 2020 Alexander A Oganezov <alexander.a.oganezov@intel.com> - 2.0.0~rc1-1
-- Update to tag v2.0.0rc1
+- Update to release v2.0.0rc1
 
 * Mon Jun 22 2020 Brian J. Murryyell <brian.murrell@intel> - 2.0.0~a1-2
 - Fix License:
