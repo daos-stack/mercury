@@ -11,8 +11,8 @@
 %global dl_version 2.0.0rc1
 
 Name: mercury
-Version: 2.0.0rc1
-Release: 1.git.%{shortmercury_commit}%{?dist}
+Version: 2.0.0~rc1
+Release: 1%{?dist}
 
 Summary:	Mercury
 
@@ -57,16 +57,13 @@ Requires:	libfabric-devel >= 1.9.0-5
 Mercury devel
 
 %prep
-%if %{with use_release}
-%autosetup -p1
-%else
-%setup -q -n mercury-%dl_version
-# %patch1 -p1
+
+%autosetup -n mercury-%dl_version
 rmdir Testing/driver/kwsys/
 tar -C Testing/driver/ -xzf %{SOURCE1}
 mv Testing/driver/kwsys{-%{kwsys_commit},}
 rmdir src/boost
-%endif
+
 tar -C src -xzf %{SOURCE2}
 mv src/preprocessor-%{boost_commit} src/boost
 %if ! %{with use_release}
@@ -120,7 +117,7 @@ cd build
 
 
 %changelog
-* Mon Jul 6 2020 Alexander A Oganezov <alexander.a.oganezov@intel.com> - 2.0.0rc1-1
+* Mon Jul 6 2020 Alexander A Oganezov <alexander.a.oganezov@intel.com> - 2.0.0~rc1-1
 - Update to tag v2.0.0rc1
 
 * Mon Jun 22 2020 Brian J. Murryyell <brian.murrell@intel> - 2.0.0~a1-2
