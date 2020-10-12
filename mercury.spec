@@ -1,4 +1,4 @@
-%global dl_version 2.0.0rc1
+%global dl_version 2.0.0rc2
 
 Name: mercury
 Version: 2.0.0~rc2
