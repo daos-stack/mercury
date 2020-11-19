@@ -1,7 +1,7 @@
-%global dl_version 2.0.0rc3
+%global dl_version 2.0.0
 
 Name: mercury
-Version: 2.0.0~rc3
+Version: 2.0.0
 Release: 1%{?dist}
 
 Summary:	Mercury
@@ -92,6 +92,9 @@ cd build
 
 
 %changelog
+* Wed Nov 18 2020 Alexander Oganezov <alexander.a.oganezov@intel.com> - 2.0.0-1
+- Update to release v2.0.0
+
 * Wed Oct 28 2020 Alexander Oganezov <alexander.a.oganezov@intel.com> - 2.0.0~rc3-1
 - Update to release v2.0.0rc3
 
