@@ -1,13 +1,16 @@
+%global dl_version 2.0.1rc1
+
 Name: mercury
-Version: 2.0.0
+Version: 2.0.1~rc1
 Release: 1%{?dist}
+
 
 Summary:	Mercury
 
 Group:		Development/Libraries
 License:	Aregonee National Laboratory, Department of Energy License
 URL:		http://mercury-hpc.github.io/documentation/
-Source0:	https://github.com/mercury-hpc/%{name}/releases/download/v%{version}/%{name}-%{version}.tar.bz2
+Source0:	https://github.com/mercury-hpc/%{name}/releases/download/v%{dl_version}/%{name}-%{dl_version}.tar.bz2
 
 BuildRequires:	openpa-devel
 BuildRequires:	libfabric-devel >= 1.9.0-5
@@ -43,7 +46,7 @@ Mercury devel
 
 %prep
 
-%autosetup -n mercury-%version
+%autosetup -n mercury-%dl_version
 
 %build
 mkdir build
@@ -90,6 +93,9 @@ cd build
 
 
 %changelog
+* Wed Jan 20 2021 Alexander Oganezov <alexander.a.oganezov@intel.com> - 2.0.1~rc1-1
+- Update to version v2.0.1rc1
+
 * Wed Nov 18 2020 Alexander Oganezov <alexander.a.oganezov@intel.com> - 2.0.0-1
 - Update to release v2.0.0
 
