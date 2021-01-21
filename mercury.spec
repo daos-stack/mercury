@@ -1,9 +1,11 @@
-%global dl_version 2.0.1rc1
-
 Name: mercury
 Version: 2.0.1~rc1
 Release: 1%{?dist}
 
+# dl_version is version with ~ removed
+%{lua:
+    rpm.define("dl_version " .. string.gsub(rpm.expand("%{version}"), "~", ""))
+}
 
 Summary:	Mercury
 
