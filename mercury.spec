@@ -10,7 +10,7 @@ Summary:	Mercury
 Group:		Development/Libraries
 License:	Aregonee National Laboratory, Department of Energy License
 URL:		http://mercury-hpc.github.io/documentation/
-Source0:	https://github.com/mercury-hpc/%{name}/releases/download/v%{dl_version}/%{name}-%{dl_version}.tar.bz2
+Source0:	https://github.com/mercury-hpc/mercury/archive/v{dl_version}.tar.gz
 
 BuildRequires:	openpa-devel
 BuildRequires:	libfabric-devel >= 1.9.0-5
