@@ -1,5 +1,5 @@
 Name: mercury
-Version: 2.0.1~rc1
+Version: 2.0.1~rc3
 Release: 1%{?dist}
 
 # dl_version is version with ~ removed
@@ -95,6 +95,9 @@ cd build
 
 
 %changelog
+* Mon May 3 2021 Alexander Oganezov <alexander.a.oganezov@intel.com> - 2.0.1~rc1-3
+- Update to version v2.0.1rc3
+
 * Wed Jan 20 2021 Alexander Oganezov <alexander.a.oganezov@intel.com> - 2.0.1~rc1-1
 - Update to version v2.0.1rc1
 
