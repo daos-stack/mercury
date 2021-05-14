@@ -107,7 +107,7 @@ cd build
 
 
 %changelog
-* Fri May 15 2021 Alexander Oganezov <alexander.a.oganezov@intel.com> - 2.0.1-1
+* Fri May 14 2021 Alexander Oganezov <alexander.a.oganezov@intel.com> - 2.0.1-1
 - Update to version v2.0.1
 
 * Mon May 10 2021 Brian J. Murryyell <brian.murrell@intel> - 2.0.1~rc1-2
