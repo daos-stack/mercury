@@ -1,6 +1,6 @@
 Name: mercury
 Version: 2.0.1
-Release: 1%{?dist}
+Release: 2%{?dist}
 
 # dl_version is version with ~ removed
 %{lua:
@@ -13,6 +13,7 @@ Group:		Development/Libraries
 License:	Aregonee National Laboratory, Department of Energy License
 URL:		http://mercury-hpc.github.io/documentation/
 Source0:	https://github.com/mercury-hpc/mercury/archive/v%{dl_version}.tar.gz
+Patch0:		https://github.com/daos-stack/mercury/na_ofi.c.patch
 
 %if 0%{?suse_version} > 0
 BuildRequires:	libatomic1
@@ -62,6 +63,8 @@ Mercury devel
 
 %autosetup -n mercury-%dl_version
 
+%patch0 -p1
+
 %build
 mkdir build
 cd build
@@ -105,8 +108,10 @@ cd build
 %{_libdir}/pkgconfig
 %{_datadir}/cmake/
 
-
 %changelog
+* Fri May 14 2021 Joseph Moore <joseph.moore@intel.com> - 2.0.1-2
+- Add patch for AV table management
+
 * Fri May 14 2021 Alexander Oganezov <alexander.a.oganezov@intel.com> - 2.0.1-1
 - Update to version v2.0.1
 
