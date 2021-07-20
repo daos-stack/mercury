@@ -61,9 +61,7 @@ Mercury devel
 
 %prep
 
-%autosetup -n mercury-%dl_version
-
-%patch0 -p1
+%autosetup -p1 -n mercury-%dl_version
 
 %build
 mkdir build
