@@ -1,5 +1,5 @@
 diff --git a/src/na/na_ofi.c b/src/na/na_ofi.c
-index 9e5f025..1289646 100644
+index 9e5f025..b203039 100644
 --- a/src/na/na_ofi.c
 +++ b/src/na/na_ofi.c
 @@ -66,6 +66,8 @@
@@ -254,7 +254,34 @@ index 9e5f025..1289646 100644
      return ret;
  }
  
-@@ -2097,13 +2210,15 @@ out:
+@@ -1684,22 +1797,20 @@ na_ofi_addr_ht_remove(
+     na_return_t ret = NA_SUCCESS;
+     int rc;
+ 
+-    hg_thread_rwlock_wrlock(&domain->rwlock);
+     ht_value =
+         hg_hash_table_lookup(domain->addr_ht, (hg_hash_table_key_t) addr_key);
+     if (ht_value == HG_HASH_TABLE_NULL)
+         goto unlock;
+ 
+-    rc = hg_hash_table_remove(domain->addr_ht, (hg_hash_table_key_t) addr_key);
+-    NA_CHECK_SUBSYS_ERROR(addr, rc != 1, unlock, ret, NA_NOENTRY,
+-        "hg_hash_table_remove() failed");
+-
+     rc = fi_av_remove(domain->fi_av, fi_addr, 1, 0 /* flags */);
+     NA_CHECK_SUBSYS_ERROR(addr, rc != 0, unlock, ret, na_ofi_errno_to_na(-rc),
+         "fi_av_remove() failed, rc: %d (%s)", rc, fi_strerror(-rc));
+ 
++    rc = hg_hash_table_remove(domain->addr_ht, (hg_hash_table_key_t) addr_key);
++    NA_CHECK_SUBSYS_ERROR(addr, rc != 1, unlock, ret, NA_NOENTRY,
++        "hg_hash_table_remove() failed");
++
+ unlock:
+-    hg_thread_rwlock_release_wrlock(&domain->rwlock);
+     return ret;
+ }
+ 
+@@ -2097,13 +2208,15 @@ out:
  static na_return_t
  na_ofi_domain_open(enum na_ofi_prov_type prov_type, const char *domain_name,
      const char *auth_key, na_bool_t no_wait,
@@ -271,7 +298,7 @@ index 9e5f025..1289646 100644
      int rc;
  
      /**
-@@ -2309,11 +2424,65 @@ na_ofi_domain_open(enum na_ofi_prov_type prov_type, const char *domain_name,
+@@ -2309,11 +2422,63 @@ na_ofi_domain_open(enum na_ofi_prov_type prov_type, const char *domain_name,
          NA_NOMEM, "hg_hash_table_new() failed");
      hg_hash_table_register_free_functions(na_ofi_domain->addr_ht, free, free);
  
@@ -296,27 +323,26 @@ index 9e5f025..1289646 100644
 +    if (threshold_str) { 
 +        na_ofi_domain->av_addr_min = universe_size - atoi(threshold_str);
 +	NA_LOG_ERROR("HG_NA_UNIVERSE_CLEAR_CNT == %d\n", atoi(threshold_str));
++	printf("HG_NA_UNIVERSE_CLEAR_CNT == %d\n", atoi(threshold_str));
 +    } else {
 +        na_ofi_domain->av_addr_min = universe_size > 8 ?
-+                                 universe_size - universe_size / 8 :
++                                 universe_size - universe_size / 4 :
 +				 universe_size - 1;
 +	NA_LOG_ERROR("HG_NA_UNIVERSE_CLEAR_CNT == NULL, using %u\n",
-+        	na_ofi_domain->av_addr_min = universe_size > 8 ?
-+                                 universe_size - universe_size / 8 :
-+				 universe_size - 1);
++        	                 universe_size > 8 ?
++                                 universe_size / 4 : 1);
 +    }
 +
 +    threshold_str = getenv("HG_NA_UNIVERSE_THRESHOLD_DELTA");
 +    if (threshold_str) {
-+        na_ofi_domain->av_addr_min = universe_size - atoi(threshold_str);
++        na_ofi_domain->av_addr_threshold = universe_size - atoi(threshold_str);
 +	NA_LOG_ERROR("HG_NA_UNIVERSE_THRESHOLD_DELTA == %d\n", atoi(threshold_str));
++	printf("HG_NA_UNIVERSE_THRESHOLD_DELTA == %d\n", atoi(threshold_str));
 +    } else {
 +       na_ofi_domain->av_addr_threshold = universe_size > 8 ? universe_size - 8 :
-+                                       universe_size;
++                                       universe_size - 1;
 +	NA_LOG_ERROR("HG_NA_UNIVERSE_THRESHOLD_DELTA == NULL, using %u\n",
-+                     na_ofi_domain->av_addr_threshold = universe_size > 8 ?
-+		     universe_size - 8 :
-+                     universe_size);
++                     universe_size > 8 ?  universe_size - 8 : universe_size -1);
 +    }
 +
 +    if (na_ofi_domain->av_addr_threshold <= na_ofi_domain->av_addr_min)
@@ -328,8 +354,7 @@ index 9e5f025..1289646 100644
 +        na_ofi_domain->av_use_sem = NA_FALSE;
 +
 +    if (na_ofi_domain->av_use_sem == NA_TRUE) {
-+        ret = sem_init(&na_ofi_domain->av_sem, 0,
-+                       (na_ofi_domain->av_addr_threshold));
++        ret = sem_init(&na_ofi_domain->av_sem, 0, na_ofi_domain->av_addr_threshold);
 +        if (ret < 0)
 +            NA_LOG_ERROR("init semaphore error %d\n", errno);
 +    }
@@ -337,7 +362,7 @@ index 9e5f025..1289646 100644
      *na_ofi_domain_p = na_ofi_domain;
  
      fi_freeinfo(providers);
-@@ -2790,19 +2959,75 @@ na_ofi_addr_addref(struct na_ofi_addr *na_ofi_addr)
+@@ -2790,20 +2955,77 @@ na_ofi_addr_addref(struct na_ofi_addr *na_ofi_addr)
  static void
  na_ofi_addr_decref(struct na_ofi_addr *na_ofi_addr)
  {
@@ -359,7 +384,9 @@ index 9e5f025..1289646 100644
 +    if (ext_addr == HG_HASH_TABLE_NULL)
 +	goto out;
 +
-+    if (hg_atomic_decr32(&ext_addr->ref_count))
++    if (hg_atomic_get32(&ext_addr->ref_count) != 0)
++        hg_atomic_decr32(&ext_addr->ref_count);
++    if (hg_atomic_get32(&ext_addr->ref_count) != 0)
 +	goto out;
 +
 +    /* add na_ofi address to LRU list */
@@ -399,30 +426,30 @@ index 9e5f025..1289646 100644
 +		                      &ext_addr->fi_addr,
 +                                      &ext_addr->ht_key);
 +            	removed++;
-+		if (na_ofi_addr->class->domain->av_use_sem == NA_TRUE)
-+            	    sem_post(&na_ofi_addr->class->domain->av_sem);
++		if (na_ofi_addr->class->domain->av_use_sem == NA_TRUE) {
++            	    int rc = sem_post(&na_ofi_addr->class->domain->av_sem);
++                    sem_getvalue(&na_ofi_addr->class->domain->av_sem, &semval);
++	        }
 +	    }
 +        }
  
 +    hg_thread_mutex_unlock(&na_ofi_addr->class->domain->lru_lock);
 +    if (na_ofi_addr->class->domain->av_use_sem == NA_TRUE)
-+        semval = sem_getvalue(&na_ofi_addr->class->domain->av_sem, &semval);
++        sem_getvalue(&na_ofi_addr->class->domain->av_sem, &semval);
 +    if (removed != 0 && na_ofi_addr->class->domain->av_use_sem == NA_TRUE) {
 +	NA_LOG_ERROR("SHRINK fi_addresses: removed=%u, cached=%u, sem=%d\n",
-+                     removed, av_entries, semval);
-+	printf("SHRINK fi_addresses: removed=%u, cached=%u, sem=%d\n",
 +                     removed, av_entries, semval);
 +     } else
 +	NA_LOG_ERROR("SHRINK fi_addresses: removed=%u, cached=%u\n",
 +                     removed, av_entries);
 +out:
 +hg_thread_rwlock_release_wrlock(&na_ofi_addr->class->domain->rwlock);
-+// do we need this? Don't think so
-+//na_ofi_domain_close(na_ofi_addr->class->domain);
  #ifdef NA_OFI_HAS_ADDR_POOL
++    na_ofi_domain_close(na_ofi_addr->class->domain);
      /* Reset refcount to 1 */
      hg_atomic_set32(&na_ofi_addr->refcount, 1);
-@@ -4008,7 +4233,7 @@ na_ofi_initialize(na_class_t *na_class, const struct na_info *na_info,
+ 
+@@ -4008,7 +4230,7 @@ na_ofi_initialize(na_class_t *na_class, const struct na_info *na_info,
  
      /* Create/Open domain */
      ret = na_ofi_domain_open(
