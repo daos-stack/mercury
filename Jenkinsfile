@@ -38,6 +38,6 @@
  */
 // To use a test branch (i.e. PR) until it lands to master
 // I.e. for testing library changes
-@Library(value="@pipeline_test") _
+@Library(value="packaging@pipeline_test") _
 
 packageBuildingJenkinsfileDAOS(['distros': ['centos7', 'centos8', 'leap15', 'ubuntu20.04']])
