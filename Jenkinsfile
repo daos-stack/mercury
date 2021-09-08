@@ -40,4 +40,5 @@
 // I.e. for testing library changes
 @Library(value="pipeline-lib@bmurrell/revert-dual-EL-building") _
 
-packageBuildingPipelineDAOS(['distros': ['centos7', 'centos8', 'leap15', 'ubuntu20.04']])
+packageBuildingPipelineDAOS(['distros': ['centos7', 'centos8', 'leap15', 'ubuntu20.04'],
+                             'Packaging-branch': 'bmurrell/revert-dual-version-build'])
