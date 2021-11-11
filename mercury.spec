@@ -110,6 +110,7 @@ cd build
 %changelog
 * Wed Nov 10 2021 Alexander Oganezov <alexander.a.oganezov@intel.com> - 2.1.0~rc3-1
 - Update to version v2.1.0rc3
+- Apply patch workaround for DAOS-8968
 
 * Tue Oct 12 2021 Alexander Oganezov <alexander.a.oganezov@intel.com> - 2.1.0~rc2-1
 - Update to version v2.1.0rc2
