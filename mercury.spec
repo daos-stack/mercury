@@ -13,6 +13,7 @@ Group:		Development/Libraries
 License:	Aregonee National Laboratory, Department of Energy License
 URL:		http://mercury-hpc.github.io/documentation/
 Source0:	https://github.com/mercury-hpc/mercury/archive/v%{dl_version}.tar.gz
+Patch:		https://github.com/daos-stack/mercury/daos_8968.patch
 
 %if 0%{?suse_version} > 0
 BuildRequires:	libatomic1
@@ -60,7 +61,7 @@ Mercury devel
 
 %prep
 
-%autosetup -n mercury-%dl_version
+%autosetup -p1 -n mercury-%dl_version
 
 %build
 mkdir build
