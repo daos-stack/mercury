@@ -1,15 +1,8 @@
-diff --git a/src/mchecksum b/src/mchecksum
-index 5b64750..57d9eee 160000
---- a/src/mchecksum
-+++ b/src/mchecksum
-@@ -1 +1 @@
--Subproject commit 5b64750b315a6b758012314c0be7b1776154692f
-+Subproject commit 57d9eeeb433c4c2a6b2b9a0572822c1beb9515d6
 diff --git a/src/na/na_ofi.c b/src/na/na_ofi.c
-index 9e5f025..afd0bb3 100644
+index e4b5b2a..f309392 100644
 --- a/src/na/na_ofi.c
 +++ b/src/na/na_ofi.c
-@@ -5149,7 +5149,7 @@ na_ofi_mem_register(na_class_t *na_class, na_mem_handle_t mem_handle)
+@@ -4953,7 +4953,7 @@ na_ofi_mem_register(na_class_t *na_class, na_mem_handle_t mem_handle)
      /* Set access mode */
      switch (na_ofi_mem_handle->desc.info.flags) {
          case NA_MEM_READ_ONLY:
