@@ -13,7 +13,6 @@ Group:		Development/Libraries
 License:	Aregonee National Laboratory, Department of Energy License
 URL:		http://mercury-hpc.github.io/documentation/
 Source0:	https://github.com/mercury-hpc/mercury/archive/v%{dl_version}.tar.gz
-Patch:		https://github.com/daos-stack/mercury/daos_8968.patch
 
 %if 0%{?suse_version} > 0
 BuildRequires:	libatomic1
@@ -110,7 +109,6 @@ cd build
 %changelog
 * Wed Nov 10 2021 Alexander Oganezov <alexander.a.oganezov@intel.com> - 2.1.0~rc3-1
 - Update to version v2.1.0rc3
-- Apply patch workaround for DAOS-8968
 
 * Tue Oct 12 2021 Alexander Oganezov <alexander.a.oganezov@intel.com> - 2.1.0~rc2-1
 - Update to version v2.1.0rc2
