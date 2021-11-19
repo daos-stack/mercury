@@ -95,7 +95,7 @@ cd build
 #%endif
 
 %files
-%license COPYING
+%license LICENSE.txt
 %{_libdir}/*.so.*
 %doc
 
