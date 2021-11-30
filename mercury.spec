@@ -107,7 +107,7 @@ cd build
 
 
 %changelog
-* Wed Nov 10 2021 Alexander Oganezov <alexander.a.oganezov@intel.com> - 2.1.0~rc4-1
+* Tue Nov 30 2021 Alexander Oganezov <alexander.a.oganezov@intel.com> - 2.1.0~rc4-1
 - Update to version v2.1.0rc4
 
 * Tue Oct 12 2021 Alexander Oganezov <alexander.a.oganezov@intel.com> - 2.1.0~rc2-1
