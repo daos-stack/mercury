@@ -2,6 +2,8 @@ mercury (2.1.0~rc4-4) unstable; urgency=medium
   [ Joseph Moore ]
   * add patch to na_ucx.c
 
+ -- Joseph Moore <joseph.moore@intel.com>  Tue, 1 Feb 2022 12:42:42 -0400
+
 mercury (2.1.0~rc4-3) unstable; urgency=medium
   [ Alexander Oganezov ]
   * remove DAOS-9173 workaround patch to na_ofi.c
