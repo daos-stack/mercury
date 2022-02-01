@@ -1,5 +1,5 @@
 diff --git a/src/na/na_ucx.c b/src/na/na_ucx.c
-index df606f9..21b8b57 100644
+index df606f9..cc74da9 100644
 --- a/src/na/na_ucx.c
 +++ b/src/na/na_ucx.c
 @@ -1958,45 +1958,51 @@ static na_return_t
@@ -12,8 +12,7 @@ index df606f9..21b8b57 100644
 +    char *device_delim = NULL;
      unsigned int port = 0;
      na_return_t ret = NA_SUCCESS;
--
-+    printf("hostname_info: %s\n", hostname_info);
+ 
      /* Set hostname (use default interface name if no hostname was passed) */
      if (hostname_info) {
 -        hostname = strdup(hostname_info);
@@ -75,15 +74,32 @@ index df606f9..21b8b57 100644
      } else {
          char pref_anyip[NI_MAXHOST];
          uint32_t subnet = 0, netmask = 0;
-@@ -2874,8 +2880,9 @@ na_ucx_initialize(
+@@ -2873,9 +2879,8 @@ na_ucx_initialize(
+     NA_CHECK_SUBSYS_NA_ERROR(
          cls, error, ret, "Could not initialize UCX config");
  
-     /* No longer needed */
+-    /* No longer needed */
 -    free(net_device);
 -    net_device = NULL;
-+    /* Sorry, but yes it is still needed */
 +    //free(net_device);
 +    //net_device = NULL;
  
      /* Create UCP context and release config */
      ret = na_ucp_context_create(config, no_wait, context_thread_mode,
+diff --git a/src/util/mercury_time.h b/src/util/mercury_time.h
+index 8fb1e74..522ac57 100644
+--- a/src/util/mercury_time.h
++++ b/src/util/mercury_time.h
+@@ -353,9 +353,10 @@ static HG_UTIL_INLINE unsigned int
+ hg_time_to_ms(hg_time_t tv)
+ {
+ #if defined(HG_UTIL_HAS_TIME_H) && defined(HG_UTIL_HAS_CLOCK_GETTIME)
+-    return (unsigned int) (tv.tv_sec * 1000 + tv.tv_nsec / 1000000);
++    return (
++        unsigned int) (tv.tv_sec * 1000 + ((tv.tv_nsec + 999999) / 1000000));
+ #else
+-    return (unsigned int) (tv.tv_sec * 1000 + tv.tv_usec / 1000);
++    return (unsigned int) (tv.tv_sec * 1000 + ((tv.tv_usec + 999) / 1000));
+ #endif
+ }
+ 
