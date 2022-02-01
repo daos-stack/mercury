@@ -10,8 +10,8 @@ Release: 4%{?dist}
 Summary:	Mercury
 
 Group:		Development/Libraries
-License:	Aregonee National Laboratory, Department of Energy License
-URL:		http://mercury-hpc.github.io/documentation/
+License:	Argonne National Laboratory, Department of Energy License
+URL:		http://mercury-hpc.github.io/user/overview/
 Source0:	https://github.com/mercury-hpc/mercury/archive/v%{dl_version}.tar.gz
 Patch0:		cpu_usage.patch
 Patch1:		mercury_ucx_parse_addr_change.patch
