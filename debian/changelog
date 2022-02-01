@@ -1,3 +1,7 @@
+mercury (2.1.0~rc4-4) unstable; urgency=medium
+  [ Joseph Moore ]
+  * add patch to na_ucx.c
+
 mercury (2.1.0~rc4-3) unstable; urgency=medium
   [ Alexander Oganezov ]
   * remove DAOS-9173 workaround patch to na_ofi.c
