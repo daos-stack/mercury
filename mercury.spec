@@ -13,8 +13,8 @@ Group:		Development/Libraries
 License:	Aregonee National Laboratory, Department of Energy License
 URL:		http://mercury-hpc.github.io/documentation/
 Source0:	https://github.com/mercury-hpc/mercury/archive/v%{dl_version}.tar.gz
-Patch0:		https://github.com/daos-stack/mercury/cpu_usage.patch
-Patch1:		https://github.com/daos-stack/mercury/ mercury_ucx_parse_addr_change.patch
+Patch0:		cpu_usage.patch
+Patch1:		mercury_ucx_parse_addr_change.patch
 
 %if 0%{?suse_version} > 0
 BuildRequires:	libatomic1
