@@ -1,4 +1,4 @@
-mercury (2.1.0~rc4-4) unstable; urgency=medium
+mercury (2.1.0~rc4-5) unstable; urgency=medium
   [ Alexander Oganezov ]
   * Apply DAOS-9561 workaround patch to na_ofi.c
 
