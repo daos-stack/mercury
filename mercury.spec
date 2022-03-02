@@ -7,6 +7,15 @@ Release: 6%{?dist}
     rpm.define("dl_version " .. string.gsub(rpm.expand("%{version}"), "~", ""))
 }
 
+%global ucx 0
+%if 0%{?rhel} > 7
+# only RHEL 8+ has a new enough ucx-devel
+%global ucx 1
+%else
+# but assume that anything else does also
+%global ucx 1
+%endif
+
 Summary:  Mercury
 
 Group:    Development/Libraries
@@ -41,7 +50,10 @@ BuildRequires: libffi7
 # have choice for libpsm_infinipath.so.1()(64bit) needed by openmpi-libs: libpsm2-compat libpsm_infinipath1
 BuildRequires: libpsm_infinipath1
 %endif
+
+%if 0%{ucx} > 0
 BuildRequires: ucx-devel
+%endif
 
 
 %description
@@ -79,11 +91,13 @@ cmake -DMERCURY_USE_CHECKSUMS=OFF          \
       -DBUILD_DOCUMENTATION=OFF            \
       -DMERCURY_INSTALL_LIB_DIR=%{_libdir} \
       -DBUILD_SHARED_LIBS=ON $MERCURY_SRC  \
+%if 0%{ucx} > 0
       -DNA_USE_UCX=ON                      \
       -DUCX_INCLUDE_DIR=/usr/include       \
       -DUCP_LIBRARY=/usr/lib64/libucp.so   \
       -DUCS_LIBRARY=/usr/lib64/libucs.so   \
       -DUCT_LIBRARY=/usr/lib64/libuct.so   \
+%endif
       ..
 make %{?_smp_mflags}
 
@@ -116,7 +130,7 @@ cd build
 
 %changelog
 * Tue Mar  1 2022 Brian J. Murrell <brian.murrell@intel> - 2.1.0~rc4-6
-- Build with UCX
+- Build with UCX on supported platforms
 - Removed invalid build options:
   * MERCURY_ENABLE_VERBOSE_ERROR
   * MERCURY_USE_SELF_FORWARD
