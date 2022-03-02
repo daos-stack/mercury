@@ -7,10 +7,13 @@ Release: 6%{?dist}
     rpm.define("dl_version " .. string.gsub(rpm.expand("%{version}"), "~", ""))
 }
 
-%global ucx 0
+%if 0%{?rhel} > 0
 %if 0%{?rhel} > 7
 # only RHEL 8+ has a new enough ucx-devel
 %global ucx 1
+%else
+%global ucx 0
+%endif
 %else
 # but assume that anything else does also
 %global ucx 1
