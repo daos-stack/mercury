@@ -1,32 +1,33 @@
 Name: mercury
 Version: 2.1.0~rc4
-Release: 4%{?dist}
+Release: 6%{?dist}
 
 # dl_version is version with ~ removed
 %{lua:
     rpm.define("dl_version " .. string.gsub(rpm.expand("%{version}"), "~", ""))
 }
 
-Summary:	Mercury
+Summary:  Mercury
 
-Group:		Development/Libraries
-License:	Argonne National Laboratory, Department of Energy License
-URL:		http://mercury-hpc.github.io/user/overview/
-Source0:	https://github.com/mercury-hpc/mercury/archive/v%{dl_version}.tar.gz
-Patch0:		cpu_usage.patch
-Patch1:		mercury_ucx_parse_addr_change.patch
+Group:    Development/Libraries
+License:  Aregonee National Laboratory, Department of Energy License
+URL:      http://mercury-hpc.github.io/documentation/
+Source0:  https://github.com/mercury-hpc/mercury/archive/v%{dl_version}.tar.gz
+Patch0:   https://github.com/daos-stack/mercury/cpu_usage.patch
+Patch1:   https://github.com/daos-stack/mercury/daos-9561-workaround.patch
+Patch2:   https://github.com/daos-stack/mercury/mercury_ucx_parse_addr_change.patch
 
 %if 0%{?suse_version} > 0
-BuildRequires:	libatomic1
+BuildRequires:  libatomic1
 %else
 %if 0%{?rhel} < 8
-BuildRequires:	openpa-devel
+BuildRequires:  openpa-devel
 %endif
 %endif
-BuildRequires:	libfabric-devel >= 1.9.0-5
-BuildRequires:	cmake
-BuildRequires:	boost-devel
-BuildRequires:	gcc-c++
+BuildRequires:  libfabric-devel >= 1.9.0-5
+BuildRequires:  cmake
+BuildRequires:  boost-devel
+BuildRequires:  gcc-c++
 %if 0%{?sle_version} >= 150000
 # have choice for libffi.so.7()(64bit) needed by python3-base: ghc-bootstrap libffi7
 # have choice for libffi.so.7(LIBFFI_BASE_7.0)(64bit) needed by python3-base: ghc-bootstrap libffi7
@@ -47,9 +48,9 @@ BuildRequires: libpsm_infinipath1
 Mercury
 
 %package devel
-Summary:	Mercury devel package
-Requires:	%{name}%{?_isa} = %{version}-%{release}
-Requires:	libfabric-devel >= 1.9.0-5
+Summary:  Mercury devel package
+Requires: %{name}%{?_isa} = %{version}-%{release}
+Requires: libfabric-devel >= 1.9.0-5
 
 %description devel
 Mercury devel
@@ -77,6 +78,11 @@ cmake -DMERCURY_USE_CHECKSUMS=OFF                \
       -DMERCURY_ENABLE_VERBOSE_ERROR=ON          \
       -DBUILD_TESTING=OFF                        \
       -DNA_USE_OFI=ON                            \
+      -DNA_USE_UCX=ON                            \
+      -DUCX_INCLUDE_DIR=/usr/include             \
+      -DUCP_LIBRARY=/usr/lib64/libucp.so         \
+      -DUCP_LIBRARY=/usr/lib64/libucs.so         \
+      -DUCP_LIBRARY=/usr/lib64/libuct.so         \
       -DBUILD_DOCUMENTATION=OFF                  \
       -DMERCURY_INSTALL_LIB_DIR=%{_libdir}       \
       -DBUILD_SHARED_LIBS=ON $MERCURY_SRC        \
@@ -88,13 +94,15 @@ make %{?_smp_mflags}
 cd build
 %make_install
 
-#%if 0%{?suse_version} >= 1315
-#%post -n %{suse_libname} -p /sbin/ldconfig
-#%postun -n %{suse_libname} -p /sbin/ldconfig
-#%else
+%if 0%{?suse_version} >= 1315 
+# only suse needs this; EL bakes it into glibc
 %post -p /sbin/ldconfig
 %postun -p /sbin/ldconfig
-#%endif
+%else
+%if 0%{?rhel} < 8
+%ldconfig_scriptlets
+%endif
+%endif
 
 %files
 %license LICENSE.txt
@@ -102,15 +110,23 @@ cd build
 %doc
 
 %files devel
-%{_includedir}
+%{_includedir}/*
 %{_libdir}/*.so
 %{_libdir}/pkgconfig
 %{_datadir}/cmake/
 
 
 %changelog
-* Tue Feb 1 2022 Joseph Moore <joseph.moore@intel.com> - 2.1.0-rc4-4
-- Apply ucx parse address change to Mercury.
+* Wed Mar 2 2022 Joseph Moore <joseph.moore@intel.com> - 2.1.0~rc4-6
+- Apply daos-9679 address parsing change to na_ucx.c.
+
+* Tue Feb 22 2022 Alexander Oganezov <alexander.a.oganezov@intel.com> - 2.1.0~rc4-5
+- Apply doas-9561 workaround
+
+* Thu Feb 17 2022 Brian J. Murryyell <brian.murrell@intel> - 2.1.0~rc4-4
+- Fix issues with %%post* ldconfig
+  - No lines are allowed after %%post -p
+  - These are not needed on EL8 as it's glibc does the work
 
 * Thu Dec 23 2021 Alexander Oganezov <alexander.a.oganezov@intel.com> - 2.1.0~rc4-3
 - Remove daos-9173 workaround
@@ -151,7 +167,7 @@ cd build
 
 * Mon Jun 22 2020 Brian J. Murryyell <brian.murrell@intel> - 2.0.0~a1-2
 - Fix License:
-- Add %license
+- Add %%license
 
 * Thu May 07 2020 Brian J. Murrell <brian.murrell@intel> - 2.0.0~a1-1
 - Fix pre-release tag in Version:
