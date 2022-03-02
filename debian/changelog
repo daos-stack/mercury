@@ -2,7 +2,7 @@ mercury (2.1.0~rc4-6) unstable; urgency=medium
   [ Joseph Moore ]
     * add patch to na_ucx.c
 
-     -- Joseph Moore <joseph.moore@intel.com>  Wed, 2 Mar 2022 12:42:42 -0400
+     -- Joseph Moore <joseph.moore@intel.com>  Wed, 2 Mar 2022 14:42:42 -0400
 
 mercury (2.1.0~rc4-5) unstable; urgency=medium
   [ Alexander Oganezov ]
