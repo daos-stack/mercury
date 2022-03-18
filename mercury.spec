@@ -60,6 +60,7 @@ BuildRequires: libucm-devel
 %else
 BuildRequires: ucx-devel
 %endif
+%endif
 
 
 %description
