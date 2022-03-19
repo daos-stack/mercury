@@ -39,7 +39,7 @@
 // To use a test branch (i.e. PR) until it lands to master
 // I.e. for testing library changes
 //@Library(value="pipeline-lib@bmurrell/build-el7-on-quickbuild") _
-@Library(value="pipeline-lib@bmurrell/per-distro-test_repos") _
+@Library(value="pipeline-lib@bmurrell/build-el7-on-quickbuild") _
 
 packageBuildingPipelineDAOS(['distros': ['centos7', 'el8', 'leap15', 'ubuntu20.04'],
                              'test_repos-leap15': 'openucx@PR-1'])
