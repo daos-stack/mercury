@@ -58,6 +58,7 @@ BuildRequires: libpsm_infinipath1
 %if (0%{?suse_version} > 0)
 BuildRequires: libucp-devel
 BuildRequires: libucs-devel
+BuildRequires: libuct-devel
 %else
 BuildRequires: ucx-devel
 %endif
