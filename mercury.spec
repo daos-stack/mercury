@@ -1,6 +1,6 @@
 Name: mercury
 Version: 2.1.0~rc4
-Release: 6%{?dist}
+Release: 7%{?dist}
 
 # dl_version is version with ~ removed
 %{lua:
@@ -27,6 +27,7 @@ URL:      http://mercury-hpc.github.io/documentation/
 Source0:  https://github.com/mercury-hpc/mercury/archive/v%{dl_version}.tar.gz
 Patch0:   https://github.com/daos-stack/mercury/cpu_usage.patch
 Patch1:   https://github.com/daos-stack/mercury/cxi_provider_plus_daos_9561.patch
+Patch2:   https://github.com/daos-stack/mercury/na_ucx_changes.patch
 
 %if 0%{?suse_version} > 0
 BuildRequires:  libatomic1
@@ -138,11 +139,15 @@ cd build
 
 
 %changelog
+* Fri Mar 25 2022 Alexander Oganezov <joseph.moore@intel.com> - 2.1.0~rc4-7
+- Apply cxi provider patch
+
 * Tue Mar  1 2022 Brian J. Murrell <brian.murrell@intel> - 2.1.0~rc4-6
 - Build with UCX on supported platforms
 - Removed invalid build options:
   * MERCURY_ENABLE_VERBOSE_ERROR
   * MERCURY_USE_SELF_FORWARD
+
 * Fri Mar 11 2022 Alexander Oganezov <alexander.a.oganezov@intel.com> - 2.1.0~rc4-6
 - Apply cxi provider patch
 
