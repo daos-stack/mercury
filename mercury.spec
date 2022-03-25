@@ -140,6 +140,9 @@ cd build
 
 %changelog
 * Fri Mar 25 2022 Alexander Oganezov <joseph.moore@intel.com> - 2.1.0~rc4-7
+- Apply ucx provider patch
+
+* Fri Mar 11 2022 Alexander Oganezov <alexander.a.oganezov@intel.com> - 2.1.0~rc4-6
 - Apply cxi provider patch
 
 * Tue Mar  1 2022 Brian J. Murrell <brian.murrell@intel> - 2.1.0~rc4-6
@@ -147,9 +150,6 @@ cd build
 - Removed invalid build options:
   * MERCURY_ENABLE_VERBOSE_ERROR
   * MERCURY_USE_SELF_FORWARD
-
-* Fri Mar 11 2022 Alexander Oganezov <alexander.a.oganezov@intel.com> - 2.1.0~rc4-6
-- Apply cxi provider patch
 
 * Tue Feb 22 2022 Alexander Oganezov <alexander.a.oganezov@intel.com> - 2.1.0~rc4-5
 - Apply doas-9561 workaround
