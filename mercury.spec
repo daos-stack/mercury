@@ -1,6 +1,6 @@
 Name: mercury
 Version: 2.1.0~rc4
-Release: 6%{?dist}
+Release: 7%{?dist}
 
 # dl_version is version with ~ removed
 %{lua:
@@ -15,7 +15,7 @@ URL:      http://mercury-hpc.github.io/documentation/
 Source0:  https://github.com/mercury-hpc/mercury/archive/v%{dl_version}.tar.gz
 Patch0:   https://github.com/daos-stack/mercury/cpu_usage.patch
 Patch1:   https://github.com/daos-stack/mercury/daos-9561-workaround.patch
-Patch2:   https://github.com/daos-stack/mercury/mercury_ucx_parse_addr_change.patch
+Patch2:   https://github.com/daos-stack/mercury/na_ucx_changes.patch
 
 %if 0%{?suse_version} > 0
 BuildRequires:  libatomic1
@@ -112,8 +112,11 @@ cd build
 
 
 %changelog
-* Wed Mar 2 2022 Joseph Moore <joseph.moore@intel.com> - 2.1.0~rc4-6
-- Apply daos-9679 address parsing change to na_ucx.c.
+* Wed Mar 31 2022 Joseph Moore <joseph.moore@intel.com> - 2.1.0~rc4-7
+- Apply daos-9679 address parsing change and active message revision to na_ucx.c.
+
+* Fri Mar 11 2022 Alexander Oganezov <alexander.a.oganezov@intel.com> - 2.1.0~rc4-6
+- Apply cxi provider patch
 
 * Tue Feb 22 2022 Alexander Oganezov <alexander.a.oganezov@intel.com> - 2.1.0~rc4-5
 - Apply doas-9561 workaround
