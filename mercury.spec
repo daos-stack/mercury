@@ -14,8 +14,7 @@ License:  Aregonee National Laboratory, Department of Energy License
 URL:      http://mercury-hpc.github.io/documentation/
 Source0:  https://github.com/mercury-hpc/mercury/archive/v%{dl_version}.tar.gz
 Patch0:   https://github.com/daos-stack/mercury/cpu_usage.patch
-Patch1:   https://github.com/daos-stack/mercury/daos-9561-workaround.patch
-Patch2:   https://github.com/daos-stack/mercury/na_ucx_changes.patch
+Patch1:   https://github.com/daos-stack/mercury/na_ucx_changes.patch
 
 %if 0%{?suse_version} > 0
 BuildRequires:  libatomic1
