@@ -11,6 +11,7 @@ Release: 8%{?dist}
 %if 0%{?rhel} > 7
 # only RHEL 8+ has a new enough ucx-devel
 %global ucx 1
+%global basesuffix .base
 %else
 %global ucx 0
 %endif
@@ -117,7 +118,6 @@ args_ucx="-DNA_USE_UCX=ON                    \
           -DUCP_LIBRARY=%{_libdir}/libucp.so \
           -DUCS_LIBRARY=%{_libdir}/libucs.so \
           -DUCT_LIBRARY=%{_libdir}/libuct.so"
-echo ${args[@]}
 for v in %{variants}; do
     rm -rf $v
     mkdir $v
@@ -146,21 +146,25 @@ mkdir -p $RPM_BUILD_ROOT/.variants/
 for v in %{variants}; do
     pushd $v
     %make_install
+%if 0%{ucx} > 0
     find $RPM_BUILD_ROOT -name .variants -prune -o -type f -print0 | xargs -0i mv {}{,.$v}
     # move it out of the way for other variants
     mkdir $RPM_BUILD_ROOT/.variants/$v
     mv $RPM_BUILD_ROOT/* $RPM_BUILD_ROOT/.variants/$v
     popd
+%endif
 done
 # now merge them together
+%if 0%{ucx} > 0
 for v in %{variants}; do
     cp -al $RPM_BUILD_ROOT/.variants/$v/* $RPM_BUILD_ROOT/
 done
 # remove unpackaged file
-find $RPM_BUILD_ROOT/%{_includedir} -name \*.ucx | xargs rm -f 
+find $RPM_BUILD_ROOT/{%{_includedir},%{_libdir}/pkgconfig,%{_datadir}/cmake/} -name \*.ucx | xargs rm -f
+%endif
 rm -rf $RPM_BUILD_ROOT/.variants
 
-%if 0%{?suse_version} >= 1315 
+%if 0%{?suse_version} >= 1315
 # only suse needs this; EL bakes it into glibc
 %post -p /sbin/ldconfig
 %postun -p /sbin/ldconfig
@@ -185,7 +189,7 @@ rm -rf $RPM_BUILD_ROOT/.variants
 %endif
 
 %files devel
-%{_includedir}/*.base
+%{_includedir}/*%{?basesuffix}
 %{_libdir}/*.so
 %{_libdir}/pkgconfig
 %{_datadir}/cmake/
@@ -197,7 +201,7 @@ rm -rf $RPM_BUILD_ROOT/.variants
   * MERCURY_ENABLE_VERBOSE_ERROR
   * MERCURY_USE_SELF_FORWARD
 
-* Wed Mar 31 2022 Joseph Moore <joseph.moore@intel.com> - 2.1.0~rc4-7
+* Thu Mar 31 2022 Joseph Moore <joseph.moore@intel.com> - 2.1.0~rc4-7
 - Apply daos-9679 address parsing change and active message revision to na_ucx.c.
 
 * Fri Mar 11 2022 Alexander Oganezov <alexander.a.oganezov@intel.com> - 2.1.0~rc4-6
