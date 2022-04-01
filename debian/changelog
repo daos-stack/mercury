@@ -2,7 +2,7 @@ mercury (2.1.0~rc4-6) unstable; urgency=medium
   [ Joseph Moore ]
     * add patch to na_ucx.c
 
-     -- Joseph Moore <joseph.moore@intel.com>  Wed, 31 Mar 2022 14:42:42 -0400
+     -- Joseph Moore <joseph.moore@intel.com>  Thu, 31 Mar 2022 14:42:42 -0400
 
   [ Alexander Oganezov ]
   * Apply cxi provider patch
