@@ -160,7 +160,7 @@ for v in %{variants}; do
     cp -al $RPM_BUILD_ROOT/.variants/$v/* $RPM_BUILD_ROOT/
 done
 # remove unpackaged file
-find $RPM_BUILD_ROOT/{%{_includedir},%{_libdir}/pkgconfig,%{_datadir}/cmake/} -name \*.ucx | xargs rm -f
+find $RPM_BUILD_ROOT{%{_includedir},%{_libdir}/pkgconfig,%{_datadir}/cmake/} -name \*.ucx | xargs rm -f
 %endif
 rm -rf $RPM_BUILD_ROOT/.variants
 
