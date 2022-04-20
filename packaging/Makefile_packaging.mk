@@ -154,41 +154,34 @@ ifeq ($(DL_NAME),)
 DL_NAME = $(NAME)
 endif
 
+# this actually should replace all of the downloaders below
+$(notdir $(SOURCE)): $(SPEC) $(CALLING_MAKEFILE)
+	# TODO: need to clean up old ones
+	$(SPECTOOL) -g $(SPEC)
+
 $(DL_NAME)$(DL_VERSION).linux-amd64.tar.$(SRC_EXT): $(SPEC) $(CALLING_MAKEFILE)
-	if ! [ -f $@ ]; then                    \
-	    rm -f ./$(DL_NAME)*.tar{gz,bz*,xz}; \
-	    $(SPECTOOL) -g $(SPEC);             \
-	fi
+	rm -f ./$(DL_NAME)*.tar{gz,bz*,xz}
+	$(SPECTOOL) -g $(SPEC)
 
 $(DL_NAME)-$(DL_VERSION).tar.$(SRC_EXT).asc: $(SPEC) $(CALLING_MAKEFILE)
-	if ! [ -f $@ ]; then                          \
-	    rm -f ./$(DL_NAME)-*.tar.{gz,bz*,xz}.asc; \
-	    $(SPECTOOL) -g $(SPEC);                   \
-	fi
+	rm -f ./$(DL_NAME)-*.tar.{gz,bz*,xz}.asc
+	$(SPECTOOL) -g $(SPEC)
 
 $(DL_NAME)-$(DL_VERSION).tar.$(SRC_EXT).sig: $(SPEC) $(CALLING_MAKEFILE)
-	if ! [ -f $@ ]; then                          \
-	    rm -f ./$(DL_NAME)-*.tar.{gz,bz*,xz}.sig; \
-	    $(SPECTOOL) -g $(SPEC);                   \
-	fi
+	rm -f ./$(DL_NAME)-*.tar.{gz,bz*,xz}.sig
+	$(SPECTOOL) -g $(SPEC)
 
 $(DL_NAME)-$(DL_VERSION).tar.$(SRC_EXT): $(SPEC) $(CALLING_MAKEFILE)
-	if ! [ -f $@ ]; then                      \
-	    rm -f ./$(DL_NAME)-*.tar.{gz,bz*,xz}; \
-	    $(SPECTOOL) -g $(SPEC);               \
-	fi
+	rm -f ./$(DL_NAME)-*.tar.{gz,bz*,xz}
+	$(SPECTOOL) -g $(SPEC)
 
 v$(DL_VERSION).tar.$(SRC_EXT): $(SPEC) $(CALLING_MAKEFILE)
-	if ! [ -f $@ ]; then            \
-	    rm -f ./v*.tar.{gz,bz*,xz}; \
-	    $(SPECTOOL) -g $(SPEC);     \
-	fi
+	rm -f ./v*.tar.{gz,bz*,xz}
+	$(SPECTOOL) -g $(SPEC)
 
 $(DL_VERSION).tar.$(SRC_EXT): $(SPEC) $(CALLING_MAKEFILE)
-	if ! [ -f $@ ]; then           \
-	    rm -f ./*.tar.{gz,bz*,xz}; \
-	    $(SPECTOOL) -g $(SPEC);    \
-	fi
+	rm -f ./*.tar.{gz,bz*,xz}
+	$(SPECTOOL) -g $(SPEC)
 
 $(DEB_TOP)/%: % | $(DEB_TOP)/
 
@@ -379,11 +372,11 @@ ifeq ($(LOCAL_REPOS),true)
       endif # ifeq ($(DISTRO_BASE), *)
     endif #ifneq ($(DAOS_STACK_$(DISTRO_BASE)_$(DAOS_REPO_TYPE)_REPO),)
     ifneq ($(DAOS_STACK_$(DISTRO_BASE)_APPSTREAM_REPO),)
-      $(DISTRO_BASE)_LOCAL_REPOS := $($(DISTRO_BASE)_LOCAL_REPOS)|$(subst centos-8.3,rocky-8.5,$(REPOSITORY_URL)$(DAOS_STACK_$(DISTRO_BASE)_APPSTREAM_REPO))
+      $(DISTRO_BASE)_LOCAL_REPOS := $($(DISTRO_BASE)_LOCAL_REPOS)|$(subst $(ORIG_TARGET_VER),$(DISTRO_VERSION),$(subst centos-8.3,rocky-8.5,$(REPOSITORY_URL)$(DAOS_STACK_$(DISTRO_BASE)_APPSTREAM_REPO)))
     endif
     # group repos are not working in Nexus so we hack in the group members directly above
     ifneq ($(DAOS_STACK_$(DISTRO_BASE)_POWERTOOLS_REPO),)
-      $(DISTRO_BASE)_LOCAL_REPOS := $($(DISTRO_BASE)_LOCAL_REPOS)|$(subst centos-8.3,rocky-8.5,$(REPOSITORY_URL)$(DAOS_STACK_$(DISTRO_BASE)_POWERTOOLS_REPO))
+      $(DISTRO_BASE)_LOCAL_REPOS := $($(DISTRO_BASE)_LOCAL_REPOS)|$(subst $(ORIG_TARGET_VER),$(DISTRO_VERSION),$(subst centos-8.3,rocky-8.5,$(REPOSITORY_URL)$(DAOS_STACK_$(DISTRO_BASE)_POWERTOOLS_REPO)))
     endif
     ifneq ($(ID_LIKE),debian)
       ifneq ($(DAOS_STACK_INTEL_ONEAPI_REPO),)
