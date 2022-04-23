@@ -195,6 +195,9 @@ rm -rf $RPM_BUILD_ROOT/.variants
 %{_datadir}/cmake/
 
 %changelog
+* Fri Apr 22 20:19:07 Joseph Moore <joseph.moore@intel.com>u - 2.1.0~rc4-9
+- Change ucx unified mode to off.
+
 * Fri Apr  1 2022 Brian J. Murrell <brian.murrell@intel> - 2.1.0~rc4-8
 - Build with ucx subpackage on supported platforms
 - Removed invalid build options:
