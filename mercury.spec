@@ -23,7 +23,7 @@ Release: 9%{?dist}
 Summary:  Mercury
 
 Group:    Development/Libraries
-License:  Aregonee National Laboratory, Department of Energy License
+License:  Argonne National Laboratory, Department of Energy License
 URL:      http://mercury-hpc.github.io/documentation/
 Source0:  https://github.com/mercury-hpc/mercury/archive/v%{dl_version}.tar.gz
 Patch0:   https://github.com/daos-stack/mercury/cpu_usage.patch
