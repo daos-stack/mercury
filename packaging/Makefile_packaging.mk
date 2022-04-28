@@ -20,7 +20,7 @@ endif
 CALLING_MAKEFILE := $(word 1, $(MAKEFILE_LIST))
 
 # this Makefile should always be executed from it's own dir
-TOPDIR := $(abspath $(dir $(firstword $(MAKEFILE_LIST)))/../..)
+TOPDIR ?= $(abspath $(dir $(firstword $(MAKEFILE_LIST))))
 
 BUILD_PREFIX ?= .
 
