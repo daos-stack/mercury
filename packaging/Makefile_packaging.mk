@@ -338,50 +338,6 @@ endif
 
 # *_LOCAL_* repos are locally built packages.
 ifeq ($(LOCAL_REPOS),true)
-<<<<<<< HEAD
-  ifneq ($(REPOSITORY_URL),)
-    # group repos are not working in Nexus so we hack in the group members directly below
-    #ifneq ($(DAOS_STACK_$(DISTRO_BASE)_DOCKER_$(DAOS_REPO_TYPE)_REPO),)
-    #DISTRO_REPOS = $(DAOS_STACK_$(DISTRO_BASE)_DOCKER_$(DAOS_REPO_TYPE)_REPO)
-    #$(DISTRO_BASE)_LOCAL_REPOS := $($(DISTRO_BASE)_LOCAL_REPOS)|$(REPOSITORY_URL)$(DAOS_STACK_$(DISTRO_BASE)_DOCKER_$(DAOS_REPO_TYPE)_REPO)/
-    #endif
-    ifneq ($(DAOS_STACK_$(DISTRO_BASE)_$(DAOS_REPO_TYPE)_REPO),)
-      ifeq ($(ID_LIKE),debian)
-        # $(DISTRO_BASE)_LOCAL_REPOS is a list separated by | because you cannot pass lists
-        # of values with spaces as environment variables
-        $(DISTRO_BASE)_LOCAL_REPOS := [trusted=yes]
-      else
-        $(DISTRO_BASE)_LOCAL_REPOS := $(REPOSITORY_URL)$(DAOS_STACK_$(DISTRO_BASE)_LOCAL_REPO)
-        DISTRO_REPOS = disabled # any non-empty value here works and is not used beyond testing if the value is empty or not
-      endif # ifeq ($(ID_LIKE),debian)
-      ifeq ($(DISTRO_BASE), EL_8)
-        # hack to use 8.3 non-group repos on EL_8
-        $(DISTRO_BASE)_LOCAL_REPOS := $($(DISTRO_BASE)_LOCAL_REPOS)|$(subst $(ORIG_TARGET_VER),$(DISTRO_VERSION),$(REPOSITORY_URL)repository/rocky-8.5-base-x86_64-proxy|$(REPOSITORY_URL)repository/rocky-8.5-extras-x86_64-proxy|$(REPOSITORY_URL)repository/epel-el-8-x86_64-proxy)
-      else ifeq ($(DISTRO_BASE), EL_7)
-        # hack to use 7.9 non-group repos on EL_7
-        $(DISTRO_BASE)_LOCAL_REPOS := $($(DISTRO_BASE)_LOCAL_REPOS)|$(subst $(ORIG_TARGET_VER),$(DISTRO_VERSION),$(REPOSITORY_URL)repository/centos-7.9-base-x86_64-proxy|$(REPOSITORY_URL)repository/centos-7.9-extras-x86_64-proxy|$(REPOSITORY_URL)repository/centos-7.9-updates-x86_64-proxy|$(REPOSITORY_URL)repository/epel-el-7-x86_64-proxy)
-      else ifeq ($(DISTRO_BASE), LEAP_15)
-        # hack to use 15 non-group repos on LEAP_15
-        $(DISTRO_BASE)_LOCAL_REPOS := $($(DISTRO_BASE)_LOCAL_REPOS)|$(subst $(ORIG_TARGET_VER),$(DISTRO_VERSION),$(REPOSITORY_URL)repository/opensuse-15.2-oss-x86_64-proxy|$(REPOSITORY_URL)repository/opensuse-15.2-update-oss-x86_64-provo-mirror-proxy|$(REPOSITORY_URL)repository/opensuse-15.2-update-non-oss-x86_64-proxy|$(REPOSITORY_URL)repository/opensuse-15.2-non-oss-x86_64-proxy|$(REPOSITORY_URL)repository/opensuse-15.2-repo-sle-update-proxy|$(REPOSITORY_URL)repository/opensuse-15.2-repo-backports-update-proxy)
-      else
-        # debian
-        $(DISTRO_BASE)_LOCAL_REPOS := $($(DISTRO_BASE)_LOCAL_REPOS) $(REPOSITORY_URL)$(DAOS_STACK_$(DISTRO_BASE)_$(DAOS_REPO_TYPE)_REPO)
-      endif # ifeq ($(DISTRO_BASE), *)
-    endif #ifneq ($(DAOS_STACK_$(DISTRO_BASE)_$(DAOS_REPO_TYPE)_REPO),)
-    ifneq ($(DAOS_STACK_$(DISTRO_BASE)_APPSTREAM_REPO),)
-      $(DISTRO_BASE)_LOCAL_REPOS := $($(DISTRO_BASE)_LOCAL_REPOS)|$(subst $(ORIG_TARGET_VER),$(DISTRO_VERSION),$(subst centos-8.3,rocky-8.5,$(REPOSITORY_URL)$(DAOS_STACK_$(DISTRO_BASE)_APPSTREAM_REPO)))
-    endif
-    # group repos are not working in Nexus so we hack in the group members directly above
-    ifneq ($(DAOS_STACK_$(DISTRO_BASE)_POWERTOOLS_REPO),)
-      $(DISTRO_BASE)_LOCAL_REPOS := $($(DISTRO_BASE)_LOCAL_REPOS)|$(subst $(ORIG_TARGET_VER),$(DISTRO_VERSION),$(subst centos-8.3,rocky-8.5,$(REPOSITORY_URL)$(DAOS_STACK_$(DISTRO_BASE)_POWERTOOLS_REPO)))
-    endif
-    ifneq ($(ID_LIKE),debian)
-      ifneq ($(DAOS_STACK_INTEL_ONEAPI_REPO),)
-        $(DISTRO_BASE)_LOCAL_REPOS := $($(DISTRO_BASE)_LOCAL_REPOS)|$(REPOSITORY_URL)$(DAOS_STACK_INTEL_ONEAPI_REPO)
-      endif # ifneq ($(DAOS_STACK_INTEL_ONEAPI_REPO),)
-    endif # ifneq ($(ID_LIKE),debian)
-  endif # ifneq ($(REPOSITORY_URL),)
-=======
   ifneq ($(ARTIFACTORY_URL),)
     ifneq ($(DAOS_STACK_$(DISTRO_BASE)_LOCAL_REPO),)
       DISTRO_REPOS = disabled # any non-empty value here works and is not used beyond testing if the value is empty or not
@@ -393,7 +349,6 @@ ifeq ($(LOCAL_REPOS),true)
       $(DISTRO_BASE)_LOCAL_REPOS += |[trusted=yes] $(ARTIFACTORY_URL)$(subst stack,stack-deps,$(DAOS_STACK_$(DISTRO_BASE)_LOCAL_REPO))
     endif #ifneq ($(DAOS_STACK_$(DISTRO_BASE)_LOCAL_REPO),)
   endif # ifneq ($(ARTIFACTORY_URL),)
->>>>>>> master
 endif # ifeq ($(LOCAL_REPOS),true)
 ifeq ($(ID_LIKE),debian)
 chrootbuild: $(DEB_TOP)/$(DEB_DSC)

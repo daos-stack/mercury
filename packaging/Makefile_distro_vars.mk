@@ -46,10 +46,6 @@ endif
 DISTRO_VERSION          ?= $(VERSION_ID)
 ORIG_TARGET_VER         := 8.5
 SED_EXPR                := 1s/$(DIST)//p
-<<<<<<< HEAD
-SED_EXPR                := 1s/$(DIST)//p
-=======
->>>>>>> master
 endif
 ifeq ($(CHROOT_NAME),opensuse-leap-15.2-x86_64)
 VERSION_ID      := 15.2

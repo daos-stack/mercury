@@ -8,8 +8,6 @@
 FROM fedora:latest
 LABEL maintainer="daos@daos.groups.io"
 
-<<<<<<< HEAD
-=======
 # Use local repo server if present
 ARG REPO_FILE_URL
 RUN if [ -n "$REPO_FILE_URL" ]; then                            \
@@ -20,7 +18,6 @@ RUN if [ -n "$REPO_FILE_URL" ]; then                            \
         mv daos_ci-fedora-artifactory.repo{.tmp,};              \
     fi
 
->>>>>>> master
 # Install basic tools
 RUN dnf -y install mock make \
                    rpm-build createrepo rpmlint redhat-lsb-core git \
