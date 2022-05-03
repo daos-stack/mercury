@@ -19,7 +19,9 @@ endif
 
 CALLING_MAKEFILE := $(word 1, $(MAKEFILE_LIST))
 
-TOPDIR  ?= $(CURDIR)
+# this Makefile should always be executed from it's own dir
+TOPDIR ?= $(abspath $(dir $(firstword $(MAKEFILE_LIST))))
+
 BUILD_PREFIX ?= .
 
 DOT     := .
@@ -28,11 +30,6 @@ RPM_BUILD_OPTIONS += $(EXTERNAL_RPM_BUILD_OPTIONS)
 # some defaults the caller can override
 PACKAGING_CHECK_DIR ?= ../packaging
 LOCAL_REPOS ?= true
-ifeq ($(ID_LIKE),debian)
-DAOS_REPO_TYPE ?= LOCAL
-else
-DAOS_REPO_TYPE ?= STABLE
-endif
 TEST_PACKAGES ?= ${NAME}
 
 # unfortunately we cannot always name the repo the same as the project
@@ -43,6 +40,7 @@ LEAP_15_PR_REPOS         ?= $(shell git show -s --format=%B | sed -ne 's/^PR-rep
 EL_7_PR_REPOS            ?= $(shell git show -s --format=%B | sed -ne 's/^PR-repos-el7: *\(.*\)/\1/p')
 EL_8_PR_REPOS            ?= $(shell git show -s --format=%B | sed -ne 's/^PR-repos-el8: *\(.*\)/\1/p')
 UBUNTU_20_04_PR_REPOS    ?= $(shell git show -s --format=%B | sed -ne 's/^PR-repos-ubuntu20: *\(.*\)/\1/p')
+REPO_FILES_PR            ?= $(shell git show -s --format=%B | sed -ne 's/^Repo-files-PR: *\(.*\)/\1/p')
 
 ifneq ($(PKG_GIT_COMMIT),)
 ifeq ($(GITHUB_PROJECT),)
@@ -339,9 +337,8 @@ patch:
 endif
 
 # *_LOCAL_* repos are locally built packages.
-# *_GROUP_* repos are a local mirror of a group of upstream repos.
-# *_GROUP_* repos may not supply a repomd.xml.key.
 ifeq ($(LOCAL_REPOS),true)
+<<<<<<< HEAD
   ifneq ($(REPOSITORY_URL),)
     # group repos are not working in Nexus so we hack in the group members directly below
     #ifneq ($(DAOS_STACK_$(DISTRO_BASE)_DOCKER_$(DAOS_REPO_TYPE)_REPO),)
@@ -384,15 +381,30 @@ ifeq ($(LOCAL_REPOS),true)
       endif # ifneq ($(DAOS_STACK_INTEL_ONEAPI_REPO),)
     endif # ifneq ($(ID_LIKE),debian)
   endif # ifneq ($(REPOSITORY_URL),)
+=======
+  ifneq ($(ARTIFACTORY_URL),)
+    ifneq ($(DAOS_STACK_$(DISTRO_BASE)_LOCAL_REPO),)
+      DISTRO_REPOS = disabled # any non-empty value here works and is not used beyond testing if the value is empty or not
+	  # convert to artifactory url
+      DAOS_STACK_$(DISTRO_BASE)_LOCAL_REPO := $(subst reposi,artifac,$(DAOS_STACK_$(DISTRO_BASE)_LOCAL_REPO))
+      # $(DISTRO_BASE)_LOCAL_REPOS is a list separated by | because you cannot pass lists
+      # of values with spaces as environment variables
+      $(DISTRO_BASE)_LOCAL_REPOS := [trusted=yes] $(ARTIFACTORY_URL)$(subst stack,stack-daos,$(DAOS_STACK_$(DISTRO_BASE)_LOCAL_REPO))
+      $(DISTRO_BASE)_LOCAL_REPOS += |[trusted=yes] $(ARTIFACTORY_URL)$(subst stack,stack-deps,$(DAOS_STACK_$(DISTRO_BASE)_LOCAL_REPO))
+    endif #ifneq ($(DAOS_STACK_$(DISTRO_BASE)_LOCAL_REPO),)
+  endif # ifneq ($(ARTIFACTORY_URL),)
+>>>>>>> master
 endif # ifeq ($(LOCAL_REPOS),true)
 ifeq ($(ID_LIKE),debian)
 chrootbuild: $(DEB_TOP)/$(DEB_DSC)
 	$(call distro_map)                                      \
 	DISTRO="$$distro"                                       \
 	PR_REPOS="$(PR_REPOS)"                                  \
+	REPO_FILES_PR="$(REPO_FILES_PR)"                        \
 	DISTRO_BASE_PR_REPOS="$($(DISTRO_BASE)_PR_REPOS)"       \
 	JENKINS_URL="$${JENKINS_URL}"                           \
 	JOB_REPOS="$(JOB_REPOS)"                                \
+	REPO_FILE_URL="$(REPO_FILE_URL)"                        \
 	DISTRO_BASE_LOCAL_REPOS="$($(DISTRO_BASE)_LOCAL_REPOS)" \
 	VERSION_CODENAME="$(VERSION_CODENAME)"                  \
 	DEB_TOP="$(DEB_TOP)"                                    \
@@ -405,23 +417,52 @@ chrootbuild: $(SRPM) $(CALLING_MAKEFILE)
 	DISTRO="$$distro"                                       \
 	CHROOT_NAME="$(CHROOT_NAME)"                            \
 	PR_REPOS="$(PR_REPOS)"                                  \
+	REPO_FILES_PR="$(REPO_FILES_PR)"                        \
 	DISTRO_BASE_PR_REPOS="$($(DISTRO_BASE)_PR_REPOS)"       \
 	JENKINS_URL="$${JENKINS_URL}"                           \
 	JOB_REPOS="$(JOB_REPOS)"                                \
-	DISTRO_BASE_LOCAL_REPOS="$($(DISTRO_BASE)_LOCAL_REPOS)" \
+	REPO_FILE_URL="$(REPO_FILE_URL)"                        \
 	MOCK_OPTIONS="$(MOCK_OPTIONS)"                          \
 	RPM_BUILD_OPTIONS='$(RPM_BUILD_OPTIONS)'                \
 	DISTRO_REPOS='$(DISTRO_REPOS)'                          \
+	ARTIFACTORY_URL="$(ARTIFACTORY_URL)"                    \
+	REPOSITORY_URL="$(REPOSITORY_URL)"                      \
 	TARGET="$<"                                             \
 	packaging/rpm_chrootbuild
 endif
 
+podman_chrootbuild:
+	if ! podman build --build-arg REPO_FILE_URL=$(REPO_FILE_URL) \
+	                  -t chrootbuild                             \
+	                  -f packaging/Dockerfile.mockbuild .; then  \
+		echo "Container build failed";                           \
+	    exit 1;                                                  \
+	fi
+	rm -f /var/lib/mock/$(CHROOT_NAME)/result/{root,build}.log
+	if ! podman run --rm --privileged -w $(TOPDIR) -v=$(TOPDIR)/..:$(TOPDIR)/..                              \
+	                -it chrootbuild bash -c "DISTRO_REPOS=false REPO_FILE_URL=$(REPO_FILE_URL)               \
+	                                         REPOSITORY_URL=$(REPOSITORY_URL)                                \
+	                                         make REPO_FILES_PR=$(REPO_FILES_PR)                             \
+											      CHROOT_NAME=$(CHROOT_NAME) -C $(CURDIR) chrootbuild"; then \
+	    cat /var/lib/mock/$(CHROOT_NAME)/result/{root,build}.log;                                            \
+	    exit 1;                                                                                              \
+	fi
+
 docker_chrootbuild:
-	$(DOCKER) build --build-arg UID=$$(id -u) -t chrootbuild \
-	                -f packaging/Dockerfile.mockbuild .
-	$(DOCKER) run --privileged=true -w $(TOPDIR) -v=$(TOPDIR):$(TOPDIR) \
-	              -it chrootbuild bash -c "make -C $(CURDIR)            \
-	              CHROOT_NAME=$(CHROOT_NAME) chrootbuild"
+	if ! $(DOCKER) build --build-arg UID=$$(id -u) -t chrootbuild   \
+	                     --build-arg REPO_FILE_URL=$(REPO_FILE_URL) \
+	                     -f packaging/Dockerfile.mockbuild .; then  \
+		echo "Container build failed";                         \
+	    exit 1;                                                \
+	fi
+	rm -f /var/lib/mock/$(CHROOT_NAME)/result/{root,build}.log
+	if ! $(DOCKER) run --user=$$(id -u) --privileged=true -w $(TOPDIR) \
+	              -v=$(TOPDIR):$(TOPDIR)                               \
+	              -it chrootbuild bash -c "make -C $(CURDIR)           \
+	              CHROOT_NAME=$(CHROOT_NAME) chrootbuild"; then        \
+	    cat /var/lib/mock/$(CHROOT_NAME)/result/{root,build}.log;      \
+	    exit 1;                                                        \
+	fi
 
 rpmlint: $(SPEC)
 	rpmlint $<
