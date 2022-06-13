@@ -1,3 +1,7 @@
+mercury (2.1.0~rc4-10) unstable; urgency=medium
+  [ Joseph Moore ]
+  * Update ucx.
+
 mercury (2.1.0~rc4-9) unstable; urgency=medium
   [ Joseph Moore ]
   * Update ucx patch to disable unified mode.

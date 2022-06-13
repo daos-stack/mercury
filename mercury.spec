@@ -1,6 +1,6 @@
 Name: mercury
 Version: 2.1.0~rc4
-Release: 9%{?dist}
+Release: 10%{?dist}
 
 # dl_version is version with ~ removed
 %{lua:
@@ -195,6 +195,9 @@ rm -rf $RPM_BUILD_ROOT/.variants
 %{_datadir}/cmake/
 
 %changelog
+* Mon Jun 13 2022 Joseph Moore <joseph.moore@intel.com> - 2.1.0~rc4-10
+- Change ucx (updated UCX patch file).
+
 * Fri Apr 22 2022 Joseph Moore <joseph.moore@intel.com> - 2.1.0~rc4-9
 - Change ucx unified mode to off (updated UCX patch file).
 
