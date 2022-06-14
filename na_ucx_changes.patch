@@ -1,5 +1,5 @@
 diff --git a/src/na/na_ucx.c b/src/na/na_ucx.c
-index df606f9..6d997d9 100644
+index df606f9..e9987e1 100644
 --- a/src/na/na_ucx.c
 +++ b/src/na/na_ucx.c
 @@ -22,6 +22,7 @@
@@ -403,12 +403,20 @@ index df606f9..6d997d9 100644
      na_ucx_addr_free,                     /* addr_free */
      NULL,                                 /* addr_set_remove */
      na_ucx_addr_self,                     /* addr_self */
-@@ -947,12 +917,13 @@ na_ucp_config_init(
-         NA_LOG_SUBSYS_DEBUG(
+@@ -927,7 +897,7 @@ na_ucp_config_init(
+     //     "ucp_config_modify() failed (%s)", ucs_status_string(status));
+ 
+     /* TODO Currently assume that systems are homogeneous */
+-    status = ucp_config_modify(config, "UNIFIED_MODE", "y");
++    status = ucp_config_modify(config, "UNIFIED_MODE", "n");
+     NA_CHECK_SUBSYS_ERROR(cls, status != UCS_OK, error, ret, NA_PROTOCOL_ERROR,
+         "ucp_config_modify() failed (%s)", ucs_status_string(status));
+ 
+@@ -948,11 +918,13 @@ na_ucp_config_init(
              cls, "Could not find NET_DEVICE to use, using default");
  
--    /* Print UCX config */
-+    /* Print UCX config 
+     /* Print UCX config */
++    /*
      NA_LOG_SUBSYS_DEBUG_FUNC(cls,
          ucp_config_print(config, hg_log_get_stream_debug(),
              "NA UCX class configuration used",
@@ -418,7 +426,7 @@ index df606f9..6d997d9 100644
  
      *config_p = config;
  
-@@ -980,10 +951,7 @@ na_ucp_context_create(const ucp_config_t *config, na_bool_t no_wait,
+@@ -980,10 +952,7 @@ na_ucp_context_create(const ucp_config_t *config, na_bool_t no_wait,
  {
      ucp_context_h context = NULL;
      ucp_params_t context_params = {
@@ -430,7 +438,7 @@ index df606f9..6d997d9 100644
      ucp_context_attr_t context_attrs = {
          .field_mask = UCP_ATTR_FIELD_REQUEST_SIZE | UCP_ATTR_FIELD_THREAD_MODE};
      ucs_status_t status;
-@@ -995,7 +963,7 @@ na_ucp_context_create(const ucp_config_t *config, na_bool_t no_wait,
+@@ -995,7 +964,7 @@ na_ucp_context_create(const ucp_config_t *config, na_bool_t no_wait,
  
      if (thread_mode == UCS_THREAD_MODE_MULTI) {
          /* If the UCP context can potentially be used by more than one
@@ -439,7 +447,7 @@ index df606f9..6d997d9 100644
          context_params.field_mask |= UCP_PARAM_FIELD_MT_WORKERS_SHARED;
          context_params.mt_workers_shared = 1;
      }
-@@ -1005,10 +973,11 @@ na_ucp_context_create(const ucp_config_t *config, na_bool_t no_wait,
+@@ -1005,10 +974,11 @@ na_ucp_context_create(const ucp_config_t *config, na_bool_t no_wait,
      NA_CHECK_SUBSYS_ERROR(cls, status != UCS_OK, error, ret, NA_PROTOCOL_ERROR,
          "ucp_init() failed (%s)", ucs_status_string(status));
  
@@ -452,7 +460,7 @@ index df606f9..6d997d9 100644
  
      /* Query context to ensure we got what we asked for */
      status = ucp_context_query(context, &context_attrs);
-@@ -1059,7 +1028,8 @@ na_ucp_worker_create(ucp_context_h context, ucs_thread_mode_t thread_mode,
+@@ -1059,7 +1029,8 @@ na_ucp_worker_create(ucp_context_h context, ucs_thread_mode_t thread_mode,
          .field_mask = UCP_WORKER_PARAM_FIELD_THREAD_MODE,
          .thread_mode = thread_mode};
      ucp_worker_attr_t worker_attrs = {
@@ -462,7 +470,7 @@ index df606f9..6d997d9 100644
      ucs_status_t status;
      na_return_t ret;
  
-@@ -1068,16 +1038,28 @@ na_ucp_worker_create(ucp_context_h context, ucs_thread_mode_t thread_mode,
+@@ -1068,16 +1039,28 @@ na_ucp_worker_create(ucp_context_h context, ucs_thread_mode_t thread_mode,
      NA_CHECK_SUBSYS_ERROR(cls, status != UCS_OK, error, ret, NA_PROTOCOL_ERROR,
          "ucp_worker_create() failed (%s)", ucs_status_string(status));
  
@@ -493,7 +501,7 @@ index df606f9..6d997d9 100644
      NA_CHECK_SUBSYS_ERROR(cls,
          (worker_attrs.field_mask & UCP_WORKER_ATTR_FIELD_THREAD_MODE) == 0,
          error, ret, NA_PROTONOSUPPORT,
-@@ -1123,6 +1105,33 @@ done:
+@@ -1123,6 +1106,33 @@ done:
      return ret;
  }
  
@@ -527,7 +535,7 @@ index df606f9..6d997d9 100644
  /*---------------------------------------------------------------------------*/
  static na_return_t
  na_ucp_listener_create(ucp_worker_h worker, const struct sockaddr *addr,
-@@ -1184,7 +1193,6 @@ na_ucp_listener_conn_cb(ucp_conn_request_h conn_request, void *arg)
+@@ -1184,7 +1194,6 @@ na_ucp_listener_conn_cb(ucp_conn_request_h conn_request, void *arg)
      struct na_ucx_addr *na_ucx_addr = NULL;
      ucs_sock_addr_t addr_key;
      ucs_status_t status;
@@ -535,7 +543,7 @@ index df606f9..6d997d9 100644
      na_return_t na_ret;
  
      status = ucp_conn_request_query(conn_request, &conn_request_attrs);
-@@ -1205,40 +1213,11 @@ na_ucp_listener_conn_cb(ucp_conn_request_h conn_request, void *arg)
+@@ -1205,40 +1214,11 @@ na_ucp_listener_conn_cb(ucp_conn_request_h conn_request, void *arg)
          "An entry is already present for this address");
  
      /* Insert new entry and create new address */
@@ -578,7 +586,7 @@ index df606f9..6d997d9 100644
      return;
  
  error:
-@@ -1290,145 +1269,6 @@ na_ucp_connect_worker(ucp_worker_h worker, ucp_address_t *address,
+@@ -1290,145 +1270,6 @@ na_ucp_connect_worker(ucp_worker_h worker, ucp_address_t *address,
  }
  
  /*---------------------------------------------------------------------------*/
@@ -724,7 +732,7 @@ index df606f9..6d997d9 100644
  static void *
  na_ucp_mem_alloc(ucp_context_h context, size_t len, ucp_mem_h *mem_p)
  {
-@@ -1571,9 +1411,8 @@ na_ucp_ep_error_cb(
+@@ -1571,9 +1412,8 @@ na_ucp_ep_error_cb(
  {
      struct na_ucx_addr *na_ucx_addr = (struct na_ucx_addr *) arg;
  
@@ -736,7 +744,7 @@ index df606f9..6d997d9 100644
  
      /* Will schedule removal of address */
      na_ucx_addr_ref_decr(na_ucx_addr);
-@@ -1581,6 +1420,199 @@ na_ucp_ep_error_cb(
+@@ -1581,6 +1421,199 @@ na_ucp_ep_error_cb(
  
  /*---------------------------------------------------------------------------*/
  static na_return_t
@@ -936,7 +944,7 @@ index df606f9..6d997d9 100644
  na_ucp_msg_send(
      ucp_ep_h ep, const void *buf, size_t buf_size, ucp_tag_t tag, void *request)
  {
-@@ -1591,8 +1623,8 @@ na_ucp_msg_send(
+@@ -1591,8 +1624,8 @@ na_ucp_msg_send(
      ucs_status_ptr_t status_ptr;
      na_return_t ret;
  
@@ -947,7 +955,7 @@ index df606f9..6d997d9 100644
  
      status_ptr = ucp_tag_send_nbx(ep, buf, buf_size, tag, &send_params);
      if (status_ptr == NULL) {
-@@ -1639,34 +1671,29 @@ done:
+@@ -1639,34 +1672,29 @@ done:
  /*---------------------------------------------------------------------------*/
  static na_return_t
  na_ucp_msg_recv(ucp_worker_h worker, void *buf, size_t buf_size, ucp_tag_t tag,
@@ -989,7 +997,7 @@ index df606f9..6d997d9 100644
      } else
          NA_CHECK_SUBSYS_ERROR(msg, UCS_PTR_IS_ERR(status_ptr), error, ret,
              NA_PROTOCOL_ERROR, "ucp_tag_recv_nbx() failed (%s)",
-@@ -1683,59 +1710,7 @@ error:
+@@ -1683,59 +1711,7 @@ error:
  
  /*---------------------------------------------------------------------------*/
  static void
@@ -1050,7 +1058,7 @@ index df606f9..6d997d9 100644
      const ucp_tag_recv_info_t *info, void NA_UNUSED *user_data)
  {
      struct na_ucx_op_id *na_ucx_op_id = (struct na_ucx_op_id *) request;
-@@ -1757,21 +1732,14 @@ na_ucp_msg_recv_expected_cb(void *request, ucs_status_t status,
+@@ -1757,21 +1733,14 @@ na_ucp_msg_recv_expected_cb(void *request, ucs_status_t status,
  
      NA_CHECK_SUBSYS_ERROR(msg,
          (info->sender_tag & NA_UCX_TAG_MASK) > NA_UCX_MAX_TAG, done, cb_ret,
@@ -1074,7 +1082,7 @@ index df606f9..6d997d9 100644
      /* Keep actual msg size */
      NA_CHECK_SUBSYS_ERROR(msg, info->length > na_ucx_op_id->info.msg.buf_size,
          done, cb_ret, NA_MSGSIZE,
-@@ -1779,7 +1747,7 @@ na_ucp_msg_recv_expected_cb(void *request, ucs_status_t status,
+@@ -1779,7 +1748,7 @@ na_ucp_msg_recv_expected_cb(void *request, ucs_status_t status,
      recv_expected_info->actual_buf_size = (na_size_t) info->length;
  
  done:
@@ -1083,7 +1091,7 @@ index df606f9..6d997d9 100644
  }
  
  /*---------------------------------------------------------------------------*/
-@@ -1878,23 +1846,23 @@ na_ucx_class_alloc(void)
+@@ -1878,23 +1847,23 @@ na_ucx_class_alloc(void)
      na_ucx_class = calloc(1, sizeof(*na_ucx_class));
      NA_CHECK_SUBSYS_ERROR_NORET(cls, na_ucx_class == NULL, error,
          "Could not allocate NA private data class");
@@ -1114,7 +1122,7 @@ index df606f9..6d997d9 100644
  
      /* Initialize addr pool */
      rc = hg_thread_spin_init(&na_ucx_class->addr_pool.lock);
-@@ -1903,16 +1871,16 @@ na_ucx_class_alloc(void)
+@@ -1903,16 +1872,16 @@ na_ucx_class_alloc(void)
      HG_QUEUE_INIT(&na_ucx_class->addr_pool.queue);
  
      /* Create address map */
@@ -1138,7 +1146,7 @@ index df606f9..6d997d9 100644
  
      return na_ucx_class;
  
-@@ -1927,6 +1895,10 @@ error:
+@@ -1927,6 +1896,10 @@ error:
  static void
  na_ucx_class_free(struct na_ucx_class *na_ucx_class)
  {
@@ -1149,7 +1157,7 @@ index df606f9..6d997d9 100644
      if (na_ucx_class->self_addr)
          na_ucx_addr_destroy(na_ucx_class->self_addr);
      if (na_ucx_class->ucp_listener)
-@@ -1936,18 +1908,15 @@ na_ucx_class_free(struct na_ucx_class *na_ucx_class)
+@@ -1936,18 +1909,15 @@ na_ucx_class_free(struct na_ucx_class *na_ucx_class)
      if (na_ucx_class->ucp_context)
          na_ucp_context_destroy(na_ucx_class->ucp_context);
  
@@ -1175,7 +1183,7 @@ index df606f9..6d997d9 100644
  
      free(na_ucx_class->protocol_name);
      free(na_ucx_class);
-@@ -1958,45 +1927,52 @@ static na_return_t
+@@ -1958,45 +1928,52 @@ static na_return_t
  na_ucx_parse_hostname_info(const char *hostname_info, const char *subnet_info,
      char **net_device_p, struct sockaddr_storage **sockaddr_p)
  {
@@ -1248,7 +1256,7 @@ index df606f9..6d997d9 100644
      } else {
          char pref_anyip[NI_MAXHOST];
          uint32_t subnet = 0, netmask = 0;
-@@ -2054,17 +2030,18 @@ na_ucx_addr_map_lookup(struct na_ucx_map *na_ucx_map, ucs_sock_addr_t *addr_key)
+@@ -2054,17 +2031,18 @@ na_ucx_addr_map_lookup(struct na_ucx_map *na_ucx_map, ucs_sock_addr_t *addr_key)
      /* Lookup key */
      hg_thread_rwlock_rdlock(&na_ucx_map->lock);
      value =
@@ -1269,7 +1277,7 @@ index df606f9..6d997d9 100644
  {
      struct na_ucx_addr *na_ucx_addr = NULL;
      na_return_t ret = NA_SUCCESS;
-@@ -2074,7 +2051,7 @@ na_ucx_addr_map_insert(struct na_ucx_class *na_ucx_class,
+@@ -2074,7 +2052,7 @@ na_ucx_addr_map_insert(struct na_ucx_class *na_ucx_class,
  
      /* Look up again to prevent race between lock release/acquire */
      na_ucx_addr = (struct na_ucx_addr *) hg_hash_table_lookup(
@@ -1278,7 +1286,7 @@ index df606f9..6d997d9 100644
      if (na_ucx_addr) {
          ret = NA_EXIST; /* Entry already exists */
          goto done;
-@@ -2085,8 +2062,34 @@ na_ucx_addr_map_insert(struct na_ucx_class *na_ucx_class,
+@@ -2085,8 +2063,34 @@ na_ucx_addr_map_insert(struct na_ucx_class *na_ucx_class,
      NA_CHECK_SUBSYS_NA_ERROR(
          addr, error, ret, "Could not allocate NA UCX addr");
  
@@ -1315,7 +1323,7 @@ index df606f9..6d997d9 100644
          (hg_hash_table_key_t) &na_ucx_addr->addr_key,
          (hg_hash_table_value_t) na_ucx_addr);
      NA_CHECK_SUBSYS_ERROR(
-@@ -2111,16 +2114,35 @@ error:
+@@ -2111,16 +2115,35 @@ error:
  static na_return_t
  na_ucx_addr_map_remove(struct na_ucx_map *na_ucx_map, ucs_sock_addr_t *addr_key)
  {
@@ -1356,7 +1364,7 @@ index df606f9..6d997d9 100644
  
  unlock:
      hg_thread_rwlock_release_wrlock(&na_ucx_map->lock);
-@@ -2130,92 +2152,39 @@ unlock:
+@@ -2130,92 +2153,39 @@ unlock:
  
  /*---------------------------------------------------------------------------*/
  static NA_INLINE unsigned int
@@ -1461,7 +1469,7 @@ index df606f9..6d997d9 100644
  static struct na_ucx_addr *
  na_ucx_addr_alloc(struct na_ucx_class *na_ucx_class)
  {
-@@ -2232,7 +2201,7 @@ na_ucx_addr_alloc(struct na_ucx_class *na_ucx_class)
+@@ -2232,7 +2202,7 @@ na_ucx_addr_alloc(struct na_ucx_class *na_ucx_class)
  static void
  na_ucx_addr_destroy(struct na_ucx_addr *na_ucx_addr)
  {
@@ -1470,7 +1478,7 @@ index df606f9..6d997d9 100644
  
      na_ucx_addr_release(na_ucx_addr);
      free(na_ucx_addr);
-@@ -2264,16 +2233,18 @@ na_ucx_addr_pool_get(struct na_ucx_class *na_ucx_class)
+@@ -2264,16 +2234,18 @@ na_ucx_addr_pool_get(struct na_ucx_class *na_ucx_class)
  static void
  na_ucx_addr_release(struct na_ucx_addr *na_ucx_addr)
  {
@@ -1495,7 +1503,7 @@ index df606f9..6d997d9 100644
      if (na_ucx_addr->worker_addr != NULL) {
          if (na_ucx_addr->worker_addr_alloc)
              free(na_ucx_addr->worker_addr);
-@@ -2284,13 +2255,13 @@ na_ucx_addr_release(struct na_ucx_addr *na_ucx_addr)
+@@ -2284,13 +2256,13 @@ na_ucx_addr_release(struct na_ucx_addr *na_ucx_addr)
      }
  }
  
@@ -1510,7 +1518,7 @@ index df606f9..6d997d9 100644
  
      if (addr_key && addr_key->addr) {
          memcpy(&na_ucx_addr->ss_addr, addr_key->addr, addr_key->addrlen);
-@@ -2299,6 +2270,9 @@ na_ucx_addr_reset(struct na_ucx_addr *na_ucx_addr, ucs_sock_addr_t *addr_key)
+@@ -2299,6 +2271,9 @@ na_ucx_addr_reset(struct na_ucx_addr *na_ucx_addr, ucs_sock_addr_t *addr_key)
          na_ucx_addr->addr_key.addr =
              (const struct sockaddr *) &na_ucx_addr->ss_addr;
          na_ucx_addr->addr_key.addrlen = addr_key->addrlen;
@@ -1520,7 +1528,7 @@ index df606f9..6d997d9 100644
      }
  }
  
-@@ -2358,11 +2332,14 @@ na_ucx_addr_ref_incr(struct na_ucx_addr *na_ucx_addr)
+@@ -2358,11 +2333,14 @@ na_ucx_addr_ref_incr(struct na_ucx_addr *na_ucx_addr)
  static NA_INLINE void
  na_ucx_addr_ref_decr(struct na_ucx_addr *na_ucx_addr)
  {
@@ -1535,7 +1543,7 @@ index df606f9..6d997d9 100644
          na_ucx_addr_release(na_ucx_addr);
  
          /* Push address back to addr pool */
-@@ -2377,104 +2354,6 @@ na_ucx_addr_ref_decr(struct na_ucx_addr *na_ucx_addr)
+@@ -2377,104 +2355,6 @@ na_ucx_addr_ref_decr(struct na_ucx_addr *na_ucx_addr)
  
  /*---------------------------------------------------------------------------*/
  static na_return_t
@@ -1640,7 +1648,7 @@ index df606f9..6d997d9 100644
  na_ucx_rma(struct na_ucx_class NA_UNUSED *na_ucx_class, na_context_t *context,
      na_cb_type_t cb_type, na_cb_t callback, void *arg,
      struct na_ucx_mem_handle *local_mem_handle, na_offset_t local_offset,
-@@ -2491,7 +2370,8 @@ na_ucx_rma(struct na_ucx_class NA_UNUSED *na_ucx_class, na_context_t *context,
+@@ -2491,7 +2371,8 @@ na_ucx_rma(struct na_ucx_class NA_UNUSED *na_ucx_class, na_context_t *context,
          !(hg_atomic_get32(&na_ucx_op_id->status) & NA_UCX_OP_COMPLETED), error,
          ret, NA_BUSY, "Attempting to use OP ID that was not completed (%s)",
          na_cb_type_to_string(na_ucx_op_id->completion_data.callback_info.type));
@@ -1650,7 +1658,7 @@ index df606f9..6d997d9 100644
      NA_UCX_OP_RESET(na_ucx_op_id, context, cb_type, callback, arg, na_ucx_addr);
  
      na_ucx_op_id->info.rma.ucp_rma_op =
-@@ -2575,137 +2455,6 @@ error:
+@@ -2575,137 +2456,6 @@ error:
  
  /*---------------------------------------------------------------------------*/
  static NA_INLINE void
@@ -1788,7 +1796,7 @@ index df606f9..6d997d9 100644
  na_ucx_complete(struct na_ucx_op_id *na_ucx_op_id, na_return_t cb_ret)
  {
      /* Mark op id as completed (independent of cb_ret) */
-@@ -2730,6 +2479,8 @@ na_ucx_release(void *arg)
+@@ -2730,6 +2480,8 @@ na_ucx_release(void *arg)
          "Releasing resources from an uncompleted operation");
  
      if (na_ucx_op_id && na_ucx_op_id->addr != NULL) {
@@ -1797,7 +1805,7 @@ index df606f9..6d997d9 100644
          na_ucx_addr_ref_decr(na_ucx_op_id->addr);
          na_ucx_op_id->addr = NULL;
      }
-@@ -2743,8 +2494,8 @@ static na_bool_t
+@@ -2743,8 +2495,8 @@ static na_bool_t
  na_ucx_check_protocol(const char *protocol_name)
  {
      ucp_config_t *config = NULL;
@@ -1808,7 +1816,7 @@ index df606f9..6d997d9 100644
      ucp_context_h context = NULL;
      ucs_status_t status;
      na_bool_t accept = NA_FALSE;
-@@ -2780,6 +2531,8 @@ na_ucx_initialize(
+@@ -2780,6 +2532,8 @@ na_ucx_initialize(
  #ifdef NA_UCX_HAS_LIB_QUERY
      ucp_lib_attr_t ucp_lib_attrs;
  #endif
@@ -1817,7 +1825,7 @@ index df606f9..6d997d9 100644
      char *net_device = NULL;
      struct sockaddr_storage *listen_ss_addr = NULL;
      struct sockaddr_storage ucp_listener_ss_addr;
-@@ -2844,6 +2597,16 @@ na_ucx_initialize(
+@@ -2844,6 +2598,16 @@ na_ucx_initialize(
              ? na_info->na_init_info->ip_subnet
              : NULL,
          &net_device, (listen) ? &listen_ss_addr : NULL);
@@ -1834,7 +1842,7 @@ index df606f9..6d997d9 100644
      NA_CHECK_SUBSYS_NA_ERROR(
          cls, error, ret, "na_ucx_parse_hostname_info() failed");
  
-@@ -2874,8 +2637,8 @@ na_ucx_initialize(
+@@ -2874,8 +2638,8 @@ na_ucx_initialize(
          cls, error, ret, "Could not initialize UCX config");
  
      /* No longer needed */
@@ -1845,7 +1853,7 @@ index df606f9..6d997d9 100644
  
      /* Create UCP context and release config */
      ret = na_ucp_context_create(config, no_wait, context_thread_mode,
-@@ -2888,6 +2651,12 @@ na_ucx_initialize(
+@@ -2888,6 +2652,12 @@ na_ucx_initialize(
          &na_ucx_class->ucp_worker);
      NA_CHECK_SUBSYS_NA_ERROR(cls, error, ret, "Could not create UCX worker");
  
@@ -1858,7 +1866,7 @@ index df606f9..6d997d9 100644
      /* Create listener if we're listening */
      if (listen) {
          ret = na_ucp_listener_create(na_ucx_class->ucp_worker,
-@@ -2943,7 +2712,7 @@ na_ucx_initialize(
+@@ -2943,7 +2713,7 @@ na_ucx_initialize(
      return NA_SUCCESS;
  
  error:
@@ -1867,7 +1875,7 @@ index df606f9..6d997d9 100644
      free(listen_ss_addr);
      if (na_ucx_class)
          na_ucx_class_free(na_ucx_class);
-@@ -2967,7 +2736,7 @@ na_ucx_finalize(na_class_t *na_class)
+@@ -2967,7 +2737,7 @@ na_ucx_finalize(na_class_t *na_class)
          hg_atomic_get32(&na_ucx_class->ncontexts));
  
      /* Iterate over remaining addresses and free them */
@@ -1876,7 +1884,7 @@ index df606f9..6d997d9 100644
      while (hg_hash_table_iter_has_more(&addr_table_iter)) {
          struct na_ucx_addr *na_ucx_addr =
              (struct na_ucx_addr *) hg_hash_table_iter_next(&addr_table_iter);
-@@ -2998,7 +2767,7 @@ na_ucx_op_create(na_class_t *na_class)
+@@ -2998,7 +2768,7 @@ na_ucx_op_create(na_class_t *na_class)
      struct na_ucx_op_id *na_ucx_op_id = NULL;
  
      /* When using UCP requests, OP IDs must have enough space to fit the
@@ -1885,7 +1893,7 @@ index df606f9..6d997d9 100644
      na_ucx_op_id = hg_mem_header_alloc(NA_UCX_CLASS(na_class)->ucp_request_size,
          alignof(struct na_ucx_op_id), sizeof(*na_ucx_op_id));
      NA_CHECK_SUBSYS_ERROR_NORET(op, na_ucx_op_id == NULL, out,
-@@ -3009,10 +2778,6 @@ na_ucx_op_create(na_class_t *na_class)
+@@ -3009,10 +2779,6 @@ na_ucx_op_create(na_class_t *na_class)
      /* Completed by default */
      hg_atomic_init32(&na_ucx_op_id->status, NA_UCX_OP_COMPLETED);
  
@@ -1896,7 +1904,7 @@ index df606f9..6d997d9 100644
  out:
      return (na_op_id_t *) na_ucx_op_id;
  }
-@@ -3088,8 +2853,8 @@ na_ucx_addr_lookup(na_class_t *na_class, const char *name, na_addr_t *addr_p)
+@@ -3088,8 +2854,8 @@ na_ucx_addr_lookup(na_class_t *na_class, const char *name, na_addr_t *addr_p)
              host_string);
  
          /* Insert new entry and create new address if needed */
@@ -1907,7 +1915,7 @@ index df606f9..6d997d9 100644
          freeaddrinfo(hostname_res);
          NA_CHECK_SUBSYS_ERROR(addr, na_ret != NA_SUCCESS && na_ret != NA_EXIST,
              error, ret, na_ret, "Could not insert new address");
-@@ -3112,7 +2877,11 @@ error:
+@@ -3112,7 +2878,11 @@ error:
  static NA_INLINE na_return_t
  na_ucx_addr_free(na_class_t NA_UNUSED *na_class, na_addr_t addr)
  {
@@ -1919,7 +1927,7 @@ index df606f9..6d997d9 100644
  
      return NA_SUCCESS;
  }
-@@ -3274,7 +3043,7 @@ na_ucx_addr_deserialize(na_class_t *na_class, na_addr_t *addr_p,
+@@ -3274,7 +3044,7 @@ na_ucx_addr_deserialize(na_class_t *na_class, na_addr_t *addr_p,
  error:
      if (na_ucx_addr)
          na_ucx_addr_destroy(na_ucx_addr);
@@ -1928,7 +1936,7 @@ index df606f9..6d997d9 100644
          free(worker_addr);
  
      return ret;
-@@ -3345,14 +3114,41 @@ done:
+@@ -3345,14 +3115,41 @@ done:
  
  /*---------------------------------------------------------------------------*/
  static na_return_t
@@ -1976,7 +1984,7 @@ index df606f9..6d997d9 100644
  }
  
  /*---------------------------------------------------------------------------*/
-@@ -3372,37 +3168,59 @@ na_ucx_msg_recv_unexpected(na_class_t *na_class, na_context_t *context,
+@@ -3372,37 +3169,59 @@ na_ucx_msg_recv_unexpected(na_class_t *na_class, na_context_t *context,
          ret, NA_BUSY, "Attempting to use OP ID that was not completed (%s)",
          na_cb_type_to_string(na_ucx_op_id->completion_data.callback_info.type));
  
@@ -2050,7 +2058,7 @@ index df606f9..6d997d9 100644
  }
  
  /*---------------------------------------------------------------------------*/
-@@ -3426,30 +3244,15 @@ na_ucx_msg_recv_expected(na_class_t *na_class, na_context_t *context,
+@@ -3426,30 +3245,15 @@ na_ucx_msg_recv_expected(na_class_t *na_class, na_context_t *context,
  
      NA_UCX_OP_RESET(
          na_ucx_op_id, context, NA_CB_RECV_EXPECTED, callback, arg, na_ucx_addr);
@@ -2086,7 +2094,7 @@ index df606f9..6d997d9 100644
  
      return NA_SUCCESS;
  
-@@ -3754,18 +3557,10 @@ na_ucx_poll_try_wait(na_class_t *na_class, na_context_t NA_UNUSED *context)
+@@ -3754,18 +3558,10 @@ na_ucx_poll_try_wait(na_class_t *na_class, na_context_t NA_UNUSED *context)
  {
      struct na_ucx_class *na_ucx_class = NA_UCX_CLASS(na_class);
      ucs_status_t status;
@@ -2105,7 +2113,7 @@ index df606f9..6d997d9 100644
      status = ucp_worker_arm(na_ucx_class->ucp_worker);
      if (status == UCS_ERR_BUSY) {
          /* Events have already arrived */
-@@ -3779,27 +3574,19 @@ na_ucx_poll_try_wait(na_class_t *na_class, na_context_t NA_UNUSED *context)
+@@ -3779,27 +3575,19 @@ na_ucx_poll_try_wait(na_class_t *na_class, na_context_t NA_UNUSED *context)
      return NA_TRUE;
  }
  
@@ -2136,7 +2144,7 @@ index df606f9..6d997d9 100644
              return NA_SUCCESS;
  
          if (timeout_ms != 0)
-@@ -3807,9 +3594,6 @@ na_ucx_progress(na_class_t *na_class, na_context_t NA_UNUSED *context,
+@@ -3807,9 +3595,6 @@ na_ucx_progress(na_class_t *na_class, na_context_t NA_UNUSED *context,
      } while (hg_time_less(now, deadline));
  
      return NA_TIMEOUT;
@@ -2146,7 +2154,7 @@ index df606f9..6d997d9 100644
  }
  
  /*---------------------------------------------------------------------------*/
-@@ -3818,6 +3602,7 @@ na_ucx_cancel(
+@@ -3818,6 +3603,7 @@ na_ucx_cancel(
      na_class_t *na_class, na_context_t NA_UNUSED *context, na_op_id_t *op_id)
  {
      struct na_ucx_op_id *na_ucx_op_id = (struct na_ucx_op_id *) op_id;
@@ -2154,7 +2162,7 @@ index df606f9..6d997d9 100644
      int32_t status;
  
      /* Exit if op has already completed */
-@@ -3826,21 +3611,22 @@ na_ucx_cancel(
+@@ -3826,21 +3612,22 @@ na_ucx_cancel(
          (status & NA_UCX_OP_CANCELED) || (status & NA_UCX_OP_CANCELING))
          return NA_SUCCESS;
  
