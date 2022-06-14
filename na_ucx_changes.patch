@@ -1,5 +1,5 @@
 diff --git a/src/na/na_ucx.c b/src/na/na_ucx.c
-index df606f9..e9987e1 100644
+index df606f9..95dcd92 100644
 --- a/src/na/na_ucx.c
 +++ b/src/na/na_ucx.c
 @@ -22,6 +22,7 @@
@@ -1801,7 +1801,7 @@ index df606f9..e9987e1 100644
  
      if (na_ucx_op_id && na_ucx_op_id->addr != NULL) {
 +
-+    	NA_LOG_SUBSYS_WARNING(addr, "decrementing ep in ucx_release: %lu, op_id: %p", na_ucx_op_id->addr->ucp_ep, na_ucx_op_id);
++    	// NA_LOG_SUBSYS_WARNING(addr, "decrementing ep in ucx_release: %lu, op_id: %p", na_ucx_op_id->addr->ucp_ep, na_ucx_op_id);
          na_ucx_addr_ref_decr(na_ucx_op_id->addr);
          na_ucx_op_id->addr = NULL;
      }
