@@ -26,8 +26,11 @@ Group:    Development/Libraries
 License:  Argonne National Laboratory, Department of Energy License
 URL:      http://mercury-hpc.github.io/documentation/
 Source0:  https://github.com/mercury-hpc/mercury/archive/v%{dl_version}.tar.gz
+# Only apply patch against rpm version of mercury to maintain backward compatibility
+# with HPE libfabric v1.14.0 with suppport for CXI
+Patch0:   cxi_libfabric115_compat.patch
 
-BuildRequires:  libfabric-devel = 1.14.0
+BuildRequires:  libfabric-devel >= 1.14.0
 BuildRequires:  cmake
 BuildRequires:  boost-devel
 BuildRequires:  gcc-c++
