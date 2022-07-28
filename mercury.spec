@@ -1,6 +1,6 @@
 Name: mercury
 Version: 2.2.0~rc6
-Release: 1%{?dist}
+Release: 2%{?dist}
 
 # dl_version is version with ~ removed
 %{lua:
@@ -29,6 +29,7 @@ Source0:  https://github.com/mercury-hpc/mercury/archive/v%{dl_version}.tar.gz
 # Only apply patch against rpm version of mercury to maintain backward compatibility
 # with HPE libfabric v1.14.0 with suppport for CXI
 Patch0:   cxi_libfabric115_compat.patch
+Patch1:   cxi_max_key.patch
 
 BuildRequires:  libfabric-devel >= 1.14.0
 BuildRequires:  cmake
@@ -189,6 +190,9 @@ rm -rf $RPM_BUILD_ROOT/.variants
 %{_datadir}/cmake/
 
 %changelog
+* Thu Jul 28 2022 Jerome Soumagne <jerome.soumagne@intel.com> - 2.2.0~rc6-2
+- Apply temporary patch for DAOS-11195
+
 * Mon Jun 27 2022 Jerome Soumagne <jerome.soumagne@intel.com> - 2.2.0~rc6-1
 - Update to 2.2.0rc6
 - Skip install rpath, enable debug log.

@@ -1,0 +1,20 @@
+diff --git a/src/na/na_ofi.c b/src/na/na_ofi.c
+index 82781c3..6bad365 100644
+--- a/src/na/na_ofi.c
++++ b/src/na/na_ofi.c
+@@ -3413,10 +3413,11 @@ na_ofi_domain_open(const struct na_ofi_fabric *na_ofi_fabric,
+         ret, NA_OVERFLOW, "MR key size (%zu) is not supported",
+         fi_info->domain_attr->mr_key_size);
+ 
+-    na_ofi_domain->max_key =
+-        (fi_info->domain_attr->mr_key_size == 8)
+-            ? INT64_MAX
+-            : (int64_t) (1UL << (fi_info->domain_attr->mr_key_size * 8)) - 1;
++    // na_ofi_domain->max_key =
++    //     (fi_info->domain_attr->mr_key_size == 8)
++    //         ? INT64_MAX
++    //         : (int64_t) (1UL << (fi_info->domain_attr->mr_key_size * 8)) - 1;
++    na_ofi_domain->max_key = INT16_MAX;
+     NA_LOG_SUBSYS_DEBUG(cls, "MR max key is %" PRId64, na_ofi_domain->max_key);
+ 
+     NA_LOG_SUBSYS_DEBUG_EXT(cls, "fi_domain opened", "%s",
