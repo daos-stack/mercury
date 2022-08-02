@@ -187,7 +187,7 @@ rm -rf $RPM_BUILD_ROOT/.variants
 
 %changelog
 * Mon Aug  1 2022 Jerome Soumagne <jerome.soumagne@intel.com> - 2.2.0~rc6-2
-- Rebuild after HPE's libfabric upgrade to v1.15.1
+- Rebuild after libfabric rpm dropped CXI compat patch
 - Drop CXI compat patch
 
 * Mon Jun 27 2022 Jerome Soumagne <jerome.soumagne@intel.com> - 2.2.0~rc6-1

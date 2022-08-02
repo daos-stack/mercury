@@ -1,6 +1,6 @@
 mercury (2.2.0~rc6-2) unstable; urgency=medium
   [ Jerome Soumagne ]
-  * Rebuild after HPE's libfabric upgrade to v1.15.1
+  * Rebuild after libfabric rpm dropped CXI compat patch
   * Drop CXI compat patch
 
  -- Jerome Soumagne <jerome.soumagne@intel.com>  Mon,  1 Aug 2022 18:25:23 -0600
