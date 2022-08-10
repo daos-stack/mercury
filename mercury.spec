@@ -1,6 +1,6 @@
 Name: mercury
 Version: 2.2.0~rc6
-Release: 2%{?dist}
+Release: 3%{?dist}
 
 # dl_version is version with ~ removed
 %{lua:
@@ -26,6 +26,7 @@ Group:    Development/Libraries
 License:  Argonne National Laboratory, Department of Energy License
 URL:      http://mercury-hpc.github.io/documentation/
 Source0:  https://github.com/mercury-hpc/mercury/archive/v%{dl_version}.tar.gz
+Patch0:   cxi_mr_key.patch
 
 BuildRequires:  libfabric-devel >= 1.14.0
 BuildRequires:  cmake
@@ -186,6 +187,9 @@ rm -rf $RPM_BUILD_ROOT/.variants
 %{_datadir}/cmake/
 
 %changelog
+* Wed Aug 10 2022 Jerome Soumagne <jerome.soumagne@intel.com> - 2.2.0~rc6-3
+- Test for CXI MR cache
+
 * Mon Aug  1 2022 Jerome Soumagne <jerome.soumagne@intel.com> - 2.2.0~rc6-2
 - Rebuild after libfabric rpm dropped CXI compat patch
 - Drop CXI compat patch

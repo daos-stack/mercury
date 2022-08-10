@@ -1,0 +1,40 @@
+From 532bc371b0c21190b81fd919599d650fb9d9b1e8 Mon Sep 17 00:00:00 2001
+From: Jerome Soumagne <jerome.soumagne@intel.com>
+Date: Thu, 4 Aug 2022 19:49:04 -0500
+Subject: [PATCH] NA OFI: when using FI_MR_ENDPOINT retrieve key after
+ fi_mr_enable() call
+
+This prevents from having providers return invalid keys when MR cache is also used
+---
+ src/na/na_ofi.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/src/na/na_ofi.c b/src/na/na_ofi.c
+index da61542..dd7f177 100644
+--- a/src/na/na_ofi.c
++++ b/src/na/na_ofi.c
+@@ -6082,10 +6082,6 @@ na_ofi_mem_register(na_class_t *na_class, na_mem_handle_t mem_handle,
+         fi_strerror(-rc), hg_atomic_get32(domain->mr_reg_count));
+     hg_atomic_incr32(domain->mr_reg_count);
+ 
+-    /* Retrieve key */
+-    na_ofi_mem_handle->desc.info.fi_mr_key =
+-        fi_mr_key(na_ofi_mem_handle->fi_mr);
+-
+     /* Attach MR to endpoint when provider requests it */
+     if (fi_info->domain_attr->mr_mode & FI_MR_ENDPOINT) {
+         struct na_ofi_endpoint *endpoint = NA_OFI_CLASS(na_class)->endpoint;
+@@ -6099,6 +6095,10 @@ na_ofi_mem_register(na_class_t *na_class, na_mem_handle_t mem_handle,
+             "fi_mr_enable() failed, rc: %d (%s)", rc, fi_strerror(-rc));
+     }
+ 
++    /* Retrieve key */
++    na_ofi_mem_handle->desc.info.fi_mr_key =
++        fi_mr_key(na_ofi_mem_handle->fi_mr);
++
+     return NA_SUCCESS;
+ 
+ error:
+-- 
+2.37.1
+
