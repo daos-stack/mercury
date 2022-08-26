@@ -1,13 +1,14 @@
 diff --git a/src/na/na_ucx.c b/src/na/na_ucx.c
-index 6810008..c4f2d0a 100644
+index 6810008..3af376b 100644
 --- a/src/na/na_ucx.c
 +++ b/src/na/na_ucx.c
-@@ -1,4 +1,5 @@
+@@ -1,5 +1,6 @@
  /**
-+ * 
   * Copyright (c) 2013-2021 UChicago Argonne, LLC and The HDF Group.
++ * Copyright (c) 2022 Intel Corporation.
   *
   * SPDX-License-Identifier: BSD-3-Clause
+  */
 @@ -22,6 +23,7 @@
  
  #include <netdb.h>
@@ -141,17 +142,15 @@ index 6810008..c4f2d0a 100644
          /* Try to get matching IP/device */
          ret = na_ip_check_interface(
              hostname, port, AF_UNSPEC, ifa_name_p, sockaddr_p, addrlen_p);
-@@ -2101,7 +2143,9 @@ na_ucx_addr_map_insert(struct na_ucx_class *na_ucx_class,
+@@ -2101,6 +2143,7 @@ na_ucx_addr_map_insert(struct na_ucx_class *na_ucx_class,
          /* Create new endpoint */
          ret = na_ucp_connect(na_ucx_class->ucp_worker,
              na_ucx_addr->addr_key.addr, na_ucx_addr->addr_key.addrlen,
 +            na_ucx_class->origin_addr,
              na_ucp_ep_error_cb, (void *) na_ucx_addr, &na_ucx_addr->ucp_ep);
-+	//NA_LOG_SUBSYS_ERROR(addr, "Client added ep: %lu", na_ucx_addr->ucp_ep);
          NA_CHECK_SUBSYS_NA_ERROR(
              addr, error, ret, "Could not connect UCP endpoint");
-     }
-@@ -2532,6 +2576,7 @@ na_ucx_initialize(
+@@ -2532,6 +2575,7 @@ na_ucx_initialize(
      char *net_device = NULL;
      struct sockaddr *listen_sockaddr = NULL;
      socklen_t listen_addrlen = 0;
@@ -159,7 +158,7 @@ index 6810008..c4f2d0a 100644
      struct sockaddr_storage ucp_listener_ss_addr;
      ucs_sock_addr_t addr_key = {.addr = NULL, .addrlen = 0};
      ucp_config_t *config;
-@@ -2589,11 +2634,13 @@ na_ucx_initialize(
+@@ -2589,11 +2633,13 @@ na_ucx_initialize(
  #endif
  
      /* Parse hostname info and get device / listener IP */
@@ -174,7 +173,7 @@ index 6810008..c4f2d0a 100644
      NA_CHECK_SUBSYS_NA_ERROR(
          cls, error, ret, "na_ucx_parse_hostname_info() failed");
  
-@@ -2602,6 +2649,7 @@ na_ucx_initialize(
+@@ -2602,6 +2648,7 @@ na_ucx_initialize(
      NA_CHECK_SUBSYS_ERROR(cls, na_ucx_class == NULL, error, ret, NA_NOMEM,
          "Could not allocate NA UCX class");
  
