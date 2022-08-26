@@ -1,5 +1,5 @@
 diff --git a/src/na/na_ucx.c b/src/na/na_ucx.c
-index 6810008..999fba1 100644
+index 6810008..c4f2d0a 100644
 --- a/src/na/na_ucx.c
 +++ b/src/na/na_ucx.c
 @@ -1,4 +1,5 @@
@@ -12,7 +12,7 @@ index 6810008..999fba1 100644
  
  #include <netdb.h>
  #include <sys/socket.h>
-+#include<arpa/inet.h>
++#include <arpa/inet.h>
  
  /****************/
  /* Local Macros */
