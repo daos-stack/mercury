@@ -1,15 +1,15 @@
 diff --git a/src/na/na_ucx.c b/src/na/na_ucx.c
-index 6810008..3af376b 100644
+index db4fc75..3af376b 100644
 --- a/src/na/na_ucx.c
 +++ b/src/na/na_ucx.c
-@@ -1,5 +1,6 @@
+@@ -1,5 +1,5 @@
  /**
-  * Copyright (c) 2013-2021 UChicago Argonne, LLC and The HDF Group.
-+ * Copyright (c) 2022 Intel Corporation.
+- * Copyright (c) 2013-2022 UChicago Argonne, LLC and The HDF Group.
++ * Copyright (c) 2013-2021 UChicago Argonne, LLC and The HDF Group.
+  * Copyright (c) 2022 Intel Corporation.
   *
   * SPDX-License-Identifier: BSD-3-Clause
-  */
-@@ -22,6 +23,7 @@
+@@ -23,6 +23,7 @@
  
  #include <netdb.h>
  #include <sys/socket.h>
@@ -17,7 +17,7 @@ index 6810008..3af376b 100644
  
  /****************/
  /* Local Macros */
-@@ -243,6 +245,7 @@ struct na_ucx_class {
+@@ -244,6 +245,7 @@ struct na_ucx_class {
      ucp_worker_h ucp_worker;                    /* Shared UCP worker */
      ucp_listener_h ucp_listener;   /* Listener handle if listening */
      struct na_ucx_addr *self_addr; /* Self address */
@@ -25,7 +25,7 @@ index 6810008..3af376b 100644
      struct hg_mem_pool *mem_pool;  /* Msg buf pool */
      size_t ucp_request_size;       /* Size of UCP requests */
      char *protocol_name;           /* Protocol used */
-@@ -357,7 +360,9 @@ na_ucp_accept(ucp_worker_h worker, ucp_conn_request_h conn_request,
+@@ -358,7 +360,9 @@ na_ucp_accept(ucp_worker_h worker, ucp_conn_request_h conn_request,
   */
  static na_return_t
  na_ucp_connect(ucp_worker_h worker, const struct sockaddr *addr,
@@ -36,7 +36,7 @@ index 6810008..3af376b 100644
      void *err_handler_arg, ucp_ep_h *ep_p);
  
  /**
-@@ -499,12 +504,19 @@ na_ucx_class_alloc(void);
+@@ -500,12 +504,19 @@ na_ucx_class_alloc(void);
  static void
  na_ucx_class_free(struct na_ucx_class *na_ucx_class);
  
@@ -57,7 +57,7 @@ index 6810008..3af376b 100644
  
  /**
   * Hash address key.
-@@ -937,6 +949,10 @@ na_ucp_config_init(
+@@ -938,6 +949,10 @@ na_ucp_config_init(
      NA_CHECK_SUBSYS_ERROR(cls, status != UCS_OK, error, ret, NA_PROTOCOL_ERROR,
          "ucp_config_modify() failed (%s)", ucs_status_string(status));
  
@@ -68,7 +68,7 @@ index 6810008..3af376b 100644
      /* Set network devices to use */
      if (net_devices) {
          status = ucp_config_modify(config, "NET_DEVICES", net_devices);
-@@ -1263,15 +1279,22 @@ na_ucp_accept(ucp_worker_h worker, ucp_conn_request_h conn_request,
+@@ -1264,15 +1279,22 @@ na_ucp_accept(ucp_worker_h worker, ucp_conn_request_h conn_request,
  /*---------------------------------------------------------------------------*/
  static na_return_t
  na_ucp_connect(ucp_worker_h worker, const struct sockaddr *addr,
@@ -93,7 +93,7 @@ index 6810008..3af376b 100644
      return na_ucp_ep_create(
          worker, &ep_params, err_handler_cb, err_handler_arg, ep_p);
  }
-@@ -1946,14 +1969,29 @@ na_ucx_class_free(struct na_ucx_class *na_ucx_class)
+@@ -1947,14 +1969,29 @@ na_ucx_class_free(struct na_ucx_class *na_ucx_class)
      free(na_ucx_class);
  }
  
@@ -124,7 +124,7 @@ index 6810008..3af376b 100644
      na_return_t ret = NA_SUCCESS;
  
      /* Set hostname (use default interface name if no hostname was passed) */
-@@ -1975,6 +2013,8 @@ na_ucx_parse_hostname_info(const char *hostname_info, const char *subnet_info,
+@@ -1976,6 +2013,8 @@ na_ucx_parse_hostname_info(const char *hostname_info, const char *subnet_info,
                  *net_device_p = strdup(hostname);
                  NA_CHECK_SUBSYS_ERROR(cls, *net_device_p == NULL, done, ret,
                      NA_NOMEM, "strdup() of net_device failed");
@@ -133,7 +133,7 @@ index 6810008..3af376b 100644
              }
              if (strcmp(host_str, "") == 0)
                  hostname = NULL;
-@@ -1998,6 +2038,8 @@ na_ucx_parse_hostname_info(const char *hostname_info, const char *subnet_info,
+@@ -1999,6 +2038,8 @@ na_ucx_parse_hostname_info(const char *hostname_info, const char *subnet_info,
      /* TODO add support for IPv6 wildcards */
  
      if (hostname && strcmp(hostname, "0.0.0.0") != 0) {
@@ -142,7 +142,7 @@ index 6810008..3af376b 100644
          /* Try to get matching IP/device */
          ret = na_ip_check_interface(
              hostname, port, AF_UNSPEC, ifa_name_p, sockaddr_p, addrlen_p);
-@@ -2101,6 +2143,7 @@ na_ucx_addr_map_insert(struct na_ucx_class *na_ucx_class,
+@@ -2102,6 +2143,7 @@ na_ucx_addr_map_insert(struct na_ucx_class *na_ucx_class,
          /* Create new endpoint */
          ret = na_ucp_connect(na_ucx_class->ucp_worker,
              na_ucx_addr->addr_key.addr, na_ucx_addr->addr_key.addrlen,
@@ -150,7 +150,7 @@ index 6810008..3af376b 100644
              na_ucp_ep_error_cb, (void *) na_ucx_addr, &na_ucx_addr->ucp_ep);
          NA_CHECK_SUBSYS_NA_ERROR(
              addr, error, ret, "Could not connect UCP endpoint");
-@@ -2532,6 +2575,7 @@ na_ucx_initialize(
+@@ -2533,6 +2575,7 @@ na_ucx_initialize(
      char *net_device = NULL;
      struct sockaddr *listen_sockaddr = NULL;
      socklen_t listen_addrlen = 0;
@@ -158,7 +158,7 @@ index 6810008..3af376b 100644
      struct sockaddr_storage ucp_listener_ss_addr;
      ucs_sock_addr_t addr_key = {.addr = NULL, .addrlen = 0};
      ucp_config_t *config;
-@@ -2589,11 +2633,13 @@ na_ucx_initialize(
+@@ -2590,11 +2633,13 @@ na_ucx_initialize(
  #endif
  
      /* Parse hostname info and get device / listener IP */
@@ -173,7 +173,7 @@ index 6810008..3af376b 100644
      NA_CHECK_SUBSYS_NA_ERROR(
          cls, error, ret, "na_ucx_parse_hostname_info() failed");
  
-@@ -2602,6 +2648,7 @@ na_ucx_initialize(
+@@ -2603,6 +2648,7 @@ na_ucx_initialize(
      NA_CHECK_SUBSYS_ERROR(cls, na_ucx_class == NULL, error, ret, NA_NOMEM,
          "Could not allocate NA UCX class");
  
