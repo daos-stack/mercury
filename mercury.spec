@@ -1,6 +1,6 @@
 Name: mercury
 Version: 2.2.0
-Release: 1%{?dist}
+Release: 2%{?dist}
 
 # dl_version is version with ~ removed
 %{lua:
@@ -26,6 +26,7 @@ Group:    Development/Libraries
 License:  Argonne National Laboratory, Department of Energy License
 URL:      http://mercury-hpc.github.io/documentation/
 Source0:  https://github.com/mercury-hpc/mercury/archive/v%{dl_version}.tar.gz
+Patch0:   https://github.com/mercury-hpc/mercury/commit/6a0e71cf1b2a44838b24ec6eb1d7fd9e8f5ea536.patch
 
 BuildRequires:  libfabric-devel >= 1.14.0
 BuildRequires:  cmake
@@ -186,6 +187,9 @@ rm -rf $RPM_BUILD_ROOT/.variants
 %{_datadir}/cmake/
 
 %changelog
+* Wed Aug 31 2022 Jerome Soumagne <jerome.soumagne@intel.com> - 2.2.0-2
+- Apply patch to fix sockets/tcp performance
+
 * Fri Aug  5 2022 Jerome Soumagne <jerome.soumagne@intel.com> - 2.2.0-1
 - Update to 2.2.0
 
