@@ -26,7 +26,7 @@ Group:    Development/Libraries
 License:  Argonne National Laboratory, Department of Energy License
 URL:      http://mercury-hpc.github.io/documentation/
 Source0:  https://github.com/mercury-hpc/mercury/archive/v%{dl_version}.tar.gz
-Patch0:   https://patch-diff.githubusercontent.com/raw/mercury-hpc/mercury/pull/617.diff
+Patch0:   https://patch-diff.githubusercontent.com/raw/mercury-hpc/mercury/pull/617.patch
 
 BuildRequires:  libfabric-devel >= 1.14.0
 BuildRequires:  cmake
