@@ -187,8 +187,8 @@ rm -rf $RPM_BUILD_ROOT/.variants
 %{_datadir}/cmake/
 
 %changelog
-* Fri Aug 26 2022 Joseph Moore <joseph.moore@intel.com> - 2.2.0-2
-- Temporarily add na_ucx.c patch to change ep creation for single IB device.
+* Fri Sep 09 2022 Joseph Moore <joseph.moore@intel.com> - 2.2.0-2
+- Add na_ucx.c patch to change ep creation for single IB device.
 
 * Fri Aug  5 2022 Jerome Soumagne <jerome.soumagne@intel.com> - 2.2.0-1
 - Update to 2.2.0
