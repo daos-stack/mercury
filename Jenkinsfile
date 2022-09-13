@@ -43,4 +43,5 @@
 
 packageBuildingPipelineDAOSTest(['distros': ['el8', 'centos7', 'leap15', 'ubuntu20.04'],
                                  'make args': 'DISTRO_VERSION_EL8=8.5',
+                                 'rpmlint_rpms_allow_errors': true,
                                  'test-tag': 'daosio'])
