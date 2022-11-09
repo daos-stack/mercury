@@ -1,5 +1,5 @@
 diff --git a/src/na/na_ucx.c b/src/na/na_ucx.c
-index db4fc75..6976403 100644
+index db4fc75..22ae8f4 100644
 --- a/src/na/na_ucx.c
 +++ b/src/na/na_ucx.c
 @@ -1,5 +1,5 @@
@@ -321,7 +321,7 @@ index db4fc75..6976403 100644
  
 -    NA_LOG_SUBSYS_DEBUG(addr, "ep_err_handler() returned (%s) for address (%p)",
 -        ucs_status_string(status), (void *) na_ucx_addr);
-+    if (status ==  UCS_ERR_CONNECTION_RESET)
++    if (status ==  UCS_ERR_CONNECTION_RESET || status == UCS_ERR_NOT_CONNECTED)
 +        na_ucx_addr->connected = false;
  
      /* Will schedule removal of address */
@@ -571,7 +571,7 @@ index db4fc75..6976403 100644
      na_ucx_addr_ref_incr(na_ucx_addr);
  
      *addr_p = (na_addr_t) na_ucx_addr;
-@@ -3097,16 +3220,44 @@ done:
+@@ -3097,15 +3220,42 @@ done:
      return ret;
  }
  
@@ -614,11 +614,9 @@ index db4fc75..6976403 100644
      struct na_ucx_op_id *na_ucx_op_id = (struct na_ucx_op_id *) op_id;
 +    struct na_ucx_class *na_ucx_class = NA_UCX_CLASS(na_class);
      na_return_t ret;
-+    bool reconnected = false;
  
      /* Check op_id */
-     NA_CHECK_SUBSYS_ERROR(op, na_ucx_op_id == NULL, error, ret, NA_INVALID_ARG,
-@@ -3116,13 +3267,33 @@ na_ucx_msg_send_unexpected(na_class_t NA_UNUSED *na_class,
+@@ -3116,13 +3266,32 @@ na_ucx_msg_send_unexpected(na_class_t NA_UNUSED *na_class,
          ret, NA_BUSY, "Attempting to use OP ID that was not completed (%s)",
          na_cb_type_to_string(na_ucx_op_id->completion_data.callback_info.type));
  
@@ -635,7 +633,6 @@ index db4fc75..6976403 100644
 +        na_ucx_ep_map_replace(na_ucx_addr, old_ep);
 +        na_ucx_addr_ref_incr(na_ucx_addr);
 +    	na_ucx_addr->connected = true;
-+	reconnected = true;
 +    }
 +
      NA_UCX_OP_RESET(na_ucx_op_id, context, NA_CB_SEND_UNEXPECTED, callback, arg,
@@ -653,7 +650,7 @@ index db4fc75..6976403 100644
      ret = na_ucp_am_send(na_ucx_addr->ucp_ep, buf, buf_size,
          &na_ucx_op_id->info.msg.tag, na_ucx_op_id);
      NA_CHECK_SUBSYS_NA_ERROR(msg, release, ret, "Could not post msg send");
-@@ -3152,7 +3323,7 @@ na_ucx_msg_recv_unexpected(na_class_t *na_class, na_context_t *context,
+@@ -3152,7 +3321,7 @@ na_ucx_msg_recv_unexpected(na_class_t *na_class, na_context_t *context,
          !(hg_atomic_get32(&na_ucx_op_id->status) & NA_UCX_OP_COMPLETED), error,
          ret, NA_BUSY, "Attempting to use OP ID that was not completed (%s)",
          na_cb_type_to_string(na_ucx_op_id->completion_data.callback_info.type));
@@ -662,7 +659,7 @@ index db4fc75..6976403 100644
      NA_UCX_OP_RESET(
          na_ucx_op_id, context, NA_CB_RECV_UNEXPECTED, callback, arg, NULL);
  
-@@ -3382,7 +3553,7 @@ na_ucx_mem_register(na_class_t *na_class, na_mem_handle_t mem_handle,
+@@ -3382,7 +3551,7 @@ na_ucx_mem_register(na_class_t *na_class, na_mem_handle_t mem_handle,
      /* Register memory */
      status = ucp_mem_map(NA_UCX_CLASS(na_class)->ucp_context, &mem_map_params,
          &na_ucx_mem_handle->ucp_mr.mem);
@@ -671,7 +668,7 @@ index db4fc75..6976403 100644
          "ucp_mem_map() failed (%s)", ucs_status_string(status));
  
      /* Keep a copy of the rkey to share with the remote */
-@@ -3390,7 +3561,7 @@ na_ucx_mem_register(na_class_t *na_class, na_mem_handle_t mem_handle,
+@@ -3390,7 +3559,7 @@ na_ucx_mem_register(na_class_t *na_class, na_mem_handle_t mem_handle,
      status = ucp_rkey_pack(NA_UCX_CLASS(na_class)->ucp_context,
          na_ucx_mem_handle->ucp_mr.mem, &na_ucx_mem_handle->rkey_buf,
          &rkey_buf_size);
@@ -680,7 +677,7 @@ index db4fc75..6976403 100644
          "ucp_rkey_pack() failed (%s)", ucs_status_string(status));
      na_ucx_mem_handle->desc.rkey_buf_size = (uint64_t) rkey_buf_size;
  
-@@ -3417,7 +3588,7 @@ na_ucx_mem_deregister(na_class_t *na_class, na_mem_handle_t mem_handle)
+@@ -3417,7 +3586,7 @@ na_ucx_mem_deregister(na_class_t *na_class, na_mem_handle_t mem_handle)
      /* Deregister memory */
      status = ucp_mem_unmap(
          NA_UCX_CLASS(na_class)->ucp_context, na_ucx_mem_handle->ucp_mr.mem);
