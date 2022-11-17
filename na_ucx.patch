@@ -1,5 +1,5 @@
 diff --git a/src/na/na_ucx.c b/src/na/na_ucx.c
-index db4fc75..ad370aa 100644
+index db4fc75..18989ee 100644
 --- a/src/na/na_ucx.c
 +++ b/src/na/na_ucx.c
 @@ -1,5 +1,5 @@
@@ -562,15 +562,7 @@ index db4fc75..ad370aa 100644
          "Protocol not supported by this class (%s)",
          na_ucx_class->protocol_name);
  
-@@ -2849,6 +2974,7 @@ na_ucx_addr_lookup(na_class_t *na_class, const char *name, na_addr_t *addr_p)
-         NA_LOG_SUBSYS_DEBUG(addr, "Address for %s was found", host_string);
-     }
- 
-+    //                    na_ucx_addr->refcount, (void *) na_ucx_addr);
-     na_ucx_addr_ref_incr(na_ucx_addr);
- 
-     *addr_p = (na_addr_t) na_ucx_addr;
-@@ -3097,15 +3223,36 @@ done:
+@@ -3097,15 +3222,37 @@ done:
      return ret;
  }
  
@@ -585,6 +577,7 @@ index db4fc75..ad370aa 100644
 +    param.flags        = flags;
 +    close_req          = ucp_ep_close_nbx(ep, &param);
 +
++    /* Only check status is non-blocking operation is completed */
 +    if (!UCS_PTR_IS_PTR(close_req)) {
 +        status = UCS_PTR_STATUS(close_req);
 +        if ( status != UCS_OK) {
