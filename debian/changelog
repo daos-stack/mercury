@@ -1,3 +1,9 @@
+mercury (2.2.0-6) unstable; urgency=medium
+  [ Jerome Soumagne ]
+  * Add ofi_timeout_envs patch to experiment with timeouts
+
+ -- Jerome Soumagne <jerome.soumagne@intel.com>  Wed, 21 Dec 2022 16:09:23 -0600
+
 mercury (2.2.0-5) unstable; urgency=medium
   [ Joseph Moore ]
   * Update na_ucx.c patch to support reconnect following disconnection..

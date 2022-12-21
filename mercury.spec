@@ -1,6 +1,6 @@
 Name: mercury
 Version: 2.2.0
-Release: 5%{?dist}
+Release: 6%{?dist}
 
 # dl_version is version with ~ removed
 %{lua:
@@ -27,6 +27,7 @@ License:  Argonne National Laboratory, Department of Energy License
 URL:      http://mercury-hpc.github.io/documentation/
 Source0:  https://github.com/mercury-hpc/mercury/archive/v%{dl_version}.tar.gz
 Patch0:   na_ucx.patch
+Patch1:   ofi_timeout_envs.patch
 
 BuildRequires:  libfabric-devel >= 1.14.0
 BuildRequires:  cmake
@@ -187,6 +188,9 @@ rm -rf $RPM_BUILD_ROOT/.variants
 %{_datadir}/cmake/
 
 %changelog
+* Wed Dec 21 2022 Jerome Soumagne <jerome.soumagne@intel.com> - 2.2.0-6
+- Add ofi_timeout_envs patch to experiment with timeouts
+
 * Thu Nov 17 2022 Joseph Moore <joseph.moore@intel.com> - 2.2.0-5
 - Update na_ucx.c patch to support reconnection following a disconnect.
 

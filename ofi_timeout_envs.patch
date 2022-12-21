@@ -1,0 +1,372 @@
+From 1f7583bbcd3bce2cb42232b39ca3e085b4368206 Mon Sep 17 00:00:00 2001
+From: Jerome Soumagne <jerome.soumagne@intel.com>
+Date: Wed, 21 Dec 2022 16:14:29 -0600
+Subject: [PATCH] NA OFI: add NA_OFI_OP_RETRY_TIMEOUT and
+ NA_OFI_OP_RETRY_PERIOD
+
+When NA_OFI_OP_RETRY_TIMEOUT is reached, retry is stoped and operation is aborted
+
+When NA_OFI_OP_RETRY_PERIOD is set, operations are retried only every NA_OFI_OP_RETRY_PERIOD ms
+---
+ src/na/na_ofi.c | 153 ++++++++++++++++++++++++++++++++----------------
+ 1 file changed, 103 insertions(+), 50 deletions(-)
+
+diff --git a/src/na/na_ofi.c b/src/na/na_ofi.c
+index b62c28c2..a4f85ca3 100644
+--- a/src/na/na_ofi.c
++++ b/src/na/na_ofi.c
+@@ -289,7 +289,7 @@ static unsigned long const na_ofi_prov_flags[] = {NA_OFI_PROV_TYPES};
+ #define NA_OFI_OP_ERRORED   (1 << 4)
+ 
+ /* Timeout (ms) until we give up on retry */
+-#define NA_OFI_OP_RETRY_TIMEOUT (90 * 1000)
++#define NA_OFI_OP_RETRY_TIMEOUT (120 * 1000)
+ 
+ /* Private data access */
+ #define NA_OFI_CLASS(x)   ((struct na_ofi_class *) ((x)->plugin_class))
+@@ -529,6 +529,7 @@ struct na_ofi_op_id {
+     HG_QUEUE_ENTRY(na_ofi_op_id) entry; /* Entry in queue           */
+     struct fi_context fi_ctx[2];        /* Context handle           */
+     hg_time_t retry_deadline;           /* Retry deadline           */
++    hg_time_t retry_last;               /* Last retry time          */
+     struct na_ofi_class *na_ofi_class;  /* NA class associated      */
+     na_context_t *context;              /* NA context associated    */
+     struct na_ofi_addr *addr;           /* Address associated       */
+@@ -636,6 +637,8 @@ struct na_ofi_class {
+     size_t unexpected_size_max;        /* Max unexpected size      */
+     size_t expected_size_max;          /* Max expected size        */
+     hg_atomic_int32_t n_contexts;      /* Number of context        */
++    unsigned int op_retry_timeout;     /* Retry timeout            */
++    unsigned int op_retry_period;      /* Time elapsed until next retry */
+     uint8_t context_max;               /* Max number of contexts   */
+     bool no_wait;                      /* Ignore wait object       */
+     bool finalizing;                   /* Class being destroyed    */
+@@ -1086,17 +1089,19 @@ na_ofi_mem_key_gen(struct na_ofi_domain *na_ofi_domain);
+  * Msg send.
+  */
+ static na_return_t
+-na_ofi_msg_send(na_context_t *context, na_cb_type_t cb_type, na_cb_t callback,
+-    void *arg, const struct na_ofi_msg_info *msg_info,
+-    struct na_ofi_addr *na_ofi_addr, struct na_ofi_op_id *na_ofi_op_id);
++na_ofi_msg_send(na_class_t *na_class, na_context_t *context,
++    na_cb_type_t cb_type, na_cb_t callback, void *arg,
++    const struct na_ofi_msg_info *msg_info, struct na_ofi_addr *na_ofi_addr,
++    struct na_ofi_op_id *na_ofi_op_id);
+ 
+ /**
+  * Msg recv.
+  */
+ static na_return_t
+-na_ofi_msg_recv(na_context_t *context, na_cb_type_t cb_type, na_cb_t callback,
+-    void *arg, const struct na_ofi_msg_info *msg_info,
+-    struct na_ofi_addr *na_ofi_addr, struct na_ofi_op_id *na_ofi_op_id);
++na_ofi_msg_recv(na_class_t *na_class, na_context_t *context,
++    na_cb_type_t cb_type, na_cb_t callback, void *arg,
++    const struct na_ofi_msg_info *msg_info, struct na_ofi_addr *na_ofi_addr,
++    struct na_ofi_op_id *na_ofi_op_id);
+ 
+ /**
+  * Get IOV index and offset pair from an absolute offset.
+@@ -1182,14 +1187,15 @@ na_ofi_cq_process_rma_event(struct na_ofi_op_id *na_ofi_op_id);
+  * Process retries.
+  */
+ static na_return_t
+-na_ofi_cq_process_retries(struct na_ofi_context *na_ofi_context);
++na_ofi_cq_process_retries(
++    struct na_ofi_context *na_ofi_context, unsigned retry_period_ms);
+ 
+ /**
+  * Push op for retry.
+  */
+ static void
+-na_ofi_op_retry(
+-    struct na_ofi_context *na_ofi_context, struct na_ofi_op_id *na_ofi_op_id);
++na_ofi_op_retry(struct na_ofi_context *na_ofi_context, unsigned int timeout_ms,
++    struct na_ofi_op_id *na_ofi_op_id);
+ 
+ /**
+  * Abort all operations targeted at fi_addr.
+@@ -4184,10 +4190,12 @@ na_ofi_mem_key_gen(struct na_ofi_domain *na_ofi_domain)
+ 
+ /*---------------------------------------------------------------------------*/
+ static na_return_t
+-na_ofi_msg_send(na_context_t *context, na_cb_type_t cb_type, na_cb_t callback,
+-    void *arg, const struct na_ofi_msg_info *msg_info,
+-    struct na_ofi_addr *na_ofi_addr, struct na_ofi_op_id *na_ofi_op_id)
++na_ofi_msg_send(na_class_t *na_class, na_context_t *context,
++    na_cb_type_t cb_type, na_cb_t callback, void *arg,
++    const struct na_ofi_msg_info *msg_info, struct na_ofi_addr *na_ofi_addr,
++    struct na_ofi_op_id *na_ofi_op_id)
+ {
++    struct na_ofi_class *na_ofi_class = NA_OFI_CLASS(na_class);
+     struct na_ofi_context *na_ofi_context = NA_OFI_CONTEXT(context);
+     na_return_t ret;
+     ssize_t rc;
+@@ -4213,7 +4221,8 @@ na_ofi_msg_send(na_context_t *context, na_cb_type_t cb_type, na_cb_t callback,
+         msg_info->buf_size, msg_info->fi_mr, msg_info->fi_addr, msg_info->tag,
+         &na_ofi_op_id->fi_ctx);
+     if (unlikely(rc == -FI_EAGAIN))
+-        na_ofi_op_retry(na_ofi_context, na_ofi_op_id);
++        na_ofi_op_retry(
++            na_ofi_context, na_ofi_class->op_retry_timeout, na_ofi_op_id);
+     else
+         NA_CHECK_SUBSYS_ERROR(msg, rc != 0, release, ret,
+             na_ofi_errno_to_na((int) -rc), "fi_tsend() failed, rc: %zd (%s)",
+@@ -4230,10 +4239,12 @@ error:
+ 
+ /*---------------------------------------------------------------------------*/
+ static na_return_t
+-na_ofi_msg_recv(na_context_t *context, na_cb_type_t cb_type, na_cb_t callback,
+-    void *arg, const struct na_ofi_msg_info *msg_info,
+-    struct na_ofi_addr *na_ofi_addr, struct na_ofi_op_id *na_ofi_op_id)
++na_ofi_msg_recv(na_class_t *na_class, na_context_t *context,
++    na_cb_type_t cb_type, na_cb_t callback, void *arg,
++    const struct na_ofi_msg_info *msg_info, struct na_ofi_addr *na_ofi_addr,
++    struct na_ofi_op_id *na_ofi_op_id)
+ {
++    struct na_ofi_class *na_ofi_class = NA_OFI_CLASS(na_class);
+     struct na_ofi_context *na_ofi_context = NA_OFI_CONTEXT(context);
+     na_return_t ret;
+     ssize_t rc;
+@@ -4259,7 +4270,8 @@ na_ofi_msg_recv(na_context_t *context, na_cb_type_t cb_type, na_cb_t callback,
+         msg_info->fi_mr, msg_info->fi_addr, msg_info->tag, msg_info->tag_mask,
+         &na_ofi_op_id->fi_ctx);
+     if (unlikely(rc == -FI_EAGAIN))
+-        na_ofi_op_retry(na_ofi_context, na_ofi_op_id);
++        na_ofi_op_retry(
++            na_ofi_context, na_ofi_class->op_retry_timeout, na_ofi_op_id);
+     else
+         NA_CHECK_SUBSYS_ERROR(msg, rc != 0, release, ret,
+             na_ofi_errno_to_na((int) -rc), "fi_trecv() failed, rc: %zd (%s)",
+@@ -4494,7 +4506,8 @@ na_ofi_rma(struct na_ofi_class *na_ofi_class, na_context_t *context,
+     /* Post the OFI RMA operation */
+     rc = fi_rma_op(na_ofi_context->fi_tx, &fi_msg_rma, fi_rma_flags);
+     if (unlikely(rc == -FI_EAGAIN))
+-        na_ofi_op_retry(na_ofi_context, na_ofi_op_id);
++        na_ofi_op_retry(
++            na_ofi_context, na_ofi_class->op_retry_timeout, na_ofi_op_id);
+     else
+         NA_CHECK_SUBSYS_ERROR(rma, rc != 0, error, ret,
+             na_ofi_errno_to_na((int) -rc),
+@@ -4807,16 +4820,21 @@ na_ofi_cq_process_rma_event(struct na_ofi_op_id *na_ofi_op_id)
+ 
+ /*---------------------------------------------------------------------------*/
+ static na_return_t
+-na_ofi_cq_process_retries(struct na_ofi_context *na_ofi_context)
++na_ofi_cq_process_retries(
++    struct na_ofi_context *na_ofi_context, unsigned int retry_period_ms)
+ {
+     struct na_ofi_op_queue *op_queue = na_ofi_context->eq->retry_op_queue;
+     struct na_ofi_op_id *na_ofi_op_id = NULL;
+     na_return_t ret;
+ 
+     do {
+-        bool canceled = false;
++        bool canceled = false, skip_retry = false;
+         na_cb_type_t cb_type;
+         ssize_t rc = 0;
++        hg_time_t now;
++
++        if (retry_period_ms > 0)
++            hg_time_get_current_ms(&now);
+ 
+         hg_thread_spin_lock(&op_queue->lock);
+         na_ofi_op_id = HG_QUEUE_FIRST(&op_queue->queue);
+@@ -4825,15 +4843,35 @@ na_ofi_cq_process_retries(struct na_ofi_context *na_ofi_context)
+             /* Queue is empty */
+             break;
+         }
+-        /* Dequeue OP ID */
+-        HG_QUEUE_POP_HEAD(&op_queue->queue, entry);
+-        hg_atomic_and32(&na_ofi_op_id->status, ~NA_OFI_OP_QUEUED);
++
++        /* Op in tail is always the most recent OP ID to be retried, if op in
++         * head has already been retried less than the retry period, no need to
++         * check the next ones. */
++        if (retry_period_ms > 0) {
++            hg_time_t retry_period_deadline = hg_time_add(
++                na_ofi_op_id->retry_last, hg_time_from_ms(retry_period_ms));
++            if (hg_time_less(retry_period_deadline, now))
++                na_ofi_op_id->retry_last = now;
++            else
++                skip_retry = true;
++        }
+ 
+         /* Check if OP ID was canceled */
+         if (hg_atomic_get32(&na_ofi_op_id->status) & NA_OFI_OP_CANCELING) {
+             hg_atomic_or32(&na_ofi_op_id->status, NA_OFI_OP_CANCELED);
+             canceled = true;
+         }
++
++        if (!skip_retry || canceled) {
++            /* Dequeue OP ID */
++            HG_QUEUE_POP_HEAD(&op_queue->queue, entry);
++            hg_atomic_and32(&na_ofi_op_id->status, ~NA_OFI_OP_QUEUED);
++        } else {
++            hg_thread_spin_unlock(&op_queue->lock);
++            /* Cannot retry yet */
++            break;
++        }
++
+         hg_thread_spin_unlock(&op_queue->lock);
+ 
+         if (canceled) {
+@@ -4893,8 +4931,6 @@ na_ofi_cq_process_retries(struct na_ofi_context *na_ofi_context)
+             }
+             continue;
+         } else if (rc == -FI_EAGAIN) {
+-            hg_time_t now;
+-
+             /* Do not retry past deadline */
+             hg_time_get_current_ms(&now);
+             if (hg_time_less(na_ofi_op_id->retry_deadline, now)) {
+@@ -4948,8 +4984,8 @@ error:
+ 
+ /*---------------------------------------------------------------------------*/
+ static void
+-na_ofi_op_retry(
+-    struct na_ofi_context *na_ofi_context, struct na_ofi_op_id *na_ofi_op_id)
++na_ofi_op_retry(struct na_ofi_context *na_ofi_context, unsigned int timeout_ms,
++    struct na_ofi_op_id *na_ofi_op_id)
+ {
+     struct na_ofi_op_queue *retry_op_queue = na_ofi_context->eq->retry_op_queue;
+ 
+@@ -4957,9 +4993,9 @@ na_ofi_op_retry(
+         na_cb_type_to_string(na_ofi_op_id->completion_data.callback_info.type));
+ 
+     /* Set retry deadline */
+-    hg_time_get_current_ms(&na_ofi_op_id->retry_deadline);
+-    na_ofi_op_id->retry_deadline = hg_time_add(
+-        na_ofi_op_id->retry_deadline, hg_time_from_ms(NA_OFI_OP_RETRY_TIMEOUT));
++    hg_time_get_current_ms(&na_ofi_op_id->retry_last);
++    na_ofi_op_id->retry_deadline =
++        hg_time_add(na_ofi_op_id->retry_last, hg_time_from_ms(timeout_ms));
+ 
+     /* Push op ID to retry queue */
+     hg_thread_spin_lock(&retry_op_queue->lock);
+@@ -5149,7 +5185,7 @@ na_ofi_initialize(
+     enum na_ofi_prov_type prov_type;
+     bool no_wait;
+     size_t msg_size_max;
+-    char *domain_name = NULL;
++    char *domain_name = NULL, *env = NULL;
+     struct na_ofi_info info = {.addr_format = FI_FORMAT_UNSPEC,
+         .thread_mode = FI_THREAD_UNSPEC,
+         .node = NULL,
+@@ -5241,6 +5277,22 @@ na_ofi_initialize(
+     NA_CHECK_SUBSYS_NA_ERROR(cls, error, ret, "Could not verify info for %s",
+         na_ofi_prov_name[prov_type]);
+ 
++    /* Default retry timeouts in ms */
++    if ((env = getenv("NA_OFI_OP_RETRY_TIMEOUT")) != NULL) {
++        na_ofi_class->op_retry_timeout = (unsigned int) atoi(env);
++    } else
++        na_ofi_class->op_retry_timeout = NA_OFI_OP_RETRY_TIMEOUT;
++
++    if ((env = getenv("NA_OFI_OP_RETRY_PERIOD")) != NULL) {
++        na_ofi_class->op_retry_period = (unsigned int) atoi(env);
++    } else
++        na_ofi_class->op_retry_period = 0;
++    NA_CHECK_SUBSYS_ERROR(cls,
++        na_ofi_class->op_retry_period > na_ofi_class->op_retry_timeout, error,
++        ret, NA_INVALID_ARG,
++        "NA_OFI_OP_RETRY_PERIOD (%u) > NA_OFI_OP_RETRY_TIMEOUT(%u)",
++        na_ofi_class->op_retry_period, na_ofi_class->op_retry_timeout);
++
+     /* Open fabric */
+     ret = na_ofi_fabric_open(
+         prov_type, na_ofi_class->fi_info->fabric_attr, &na_ofi_class->fabric);
+@@ -5831,10 +5883,10 @@ na_ofi_msg_init_unexpected(na_class_t *na_class, void *buf, size_t buf_size)
+ 
+ /*---------------------------------------------------------------------------*/
+ static na_return_t
+-na_ofi_msg_send_unexpected(na_class_t NA_UNUSED *na_class,
+-    na_context_t *context, na_cb_t callback, void *arg, const void *buf,
+-    size_t buf_size, void *plugin_data, na_addr_t dest_addr, uint8_t dest_id,
+-    na_tag_t tag, na_op_id_t *op_id)
++na_ofi_msg_send_unexpected(na_class_t *na_class, na_context_t *context,
++    na_cb_t callback, void *arg, const void *buf, size_t buf_size,
++    void *plugin_data, na_addr_t dest_addr, uint8_t dest_id, na_tag_t tag,
++    na_op_id_t *op_id)
+ {
+     struct na_ofi_addr *na_ofi_addr = (struct na_ofi_addr *) dest_addr;
+     struct na_ofi_msg_info msg_info = {.buf.const_ptr = buf,
+@@ -5845,15 +5897,15 @@ na_ofi_msg_send_unexpected(na_class_t NA_UNUSED *na_class,
+         .tag = (uint64_t) tag | NA_OFI_UNEXPECTED_TAG,
+         .tag_mask = 0};
+ 
+-    return na_ofi_msg_send(context, NA_CB_SEND_UNEXPECTED, callback, arg,
+-        &msg_info, na_ofi_addr, (struct na_ofi_op_id *) op_id);
++    return na_ofi_msg_send(na_class, context, NA_CB_SEND_UNEXPECTED, callback,
++        arg, &msg_info, na_ofi_addr, (struct na_ofi_op_id *) op_id);
+ }
+ 
+ /*---------------------------------------------------------------------------*/
+ static na_return_t
+-na_ofi_msg_recv_unexpected(na_class_t NA_UNUSED *na_class,
+-    na_context_t *context, na_cb_t callback, void *arg, void *buf,
+-    size_t buf_size, void *plugin_data, na_op_id_t *op_id)
++na_ofi_msg_recv_unexpected(na_class_t *na_class, na_context_t *context,
++    na_cb_t callback, void *arg, void *buf, size_t buf_size, void *plugin_data,
++    na_op_id_t *op_id)
+ {
+     struct na_ofi_msg_info msg_info = {.buf.ptr = buf,
+         .buf_size = buf_size,
+@@ -5862,13 +5914,13 @@ na_ofi_msg_recv_unexpected(na_class_t NA_UNUSED *na_class,
+         .tag = NA_OFI_UNEXPECTED_TAG,
+         .tag_mask = NA_OFI_TAG_MASK};
+ 
+-    return na_ofi_msg_recv(context, NA_CB_RECV_UNEXPECTED, callback, arg,
+-        &msg_info, NULL, (struct na_ofi_op_id *) op_id);
++    return na_ofi_msg_recv(na_class, context, NA_CB_RECV_UNEXPECTED, callback,
++        arg, &msg_info, NULL, (struct na_ofi_op_id *) op_id);
+ }
+ 
+ /*---------------------------------------------------------------------------*/
+ static na_return_t
+-na_ofi_msg_send_expected(na_class_t NA_UNUSED *na_class, na_context_t *context,
++na_ofi_msg_send_expected(na_class_t *na_class, na_context_t *context,
+     na_cb_t callback, void *arg, const void *buf, size_t buf_size,
+     void *plugin_data, na_addr_t dest_addr, uint8_t dest_id, na_tag_t tag,
+     na_op_id_t *op_id)
+@@ -5882,13 +5934,13 @@ na_ofi_msg_send_expected(na_class_t NA_UNUSED *na_class, na_context_t *context,
+         .tag = tag,
+         .tag_mask = 0};
+ 
+-    return na_ofi_msg_send(context, NA_CB_SEND_EXPECTED, callback, arg,
+-        &msg_info, na_ofi_addr, (struct na_ofi_op_id *) op_id);
++    return na_ofi_msg_send(na_class, context, NA_CB_SEND_EXPECTED, callback,
++        arg, &msg_info, na_ofi_addr, (struct na_ofi_op_id *) op_id);
+ }
+ 
+ /*---------------------------------------------------------------------------*/
+ static na_return_t
+-na_ofi_msg_recv_expected(na_class_t NA_UNUSED *na_class, na_context_t *context,
++na_ofi_msg_recv_expected(na_class_t *na_class, na_context_t *context,
+     na_cb_t callback, void *arg, void *buf, size_t buf_size, void *plugin_data,
+     na_addr_t source_addr, uint8_t source_id, na_tag_t tag, na_op_id_t *op_id)
+ {
+@@ -5901,8 +5953,8 @@ na_ofi_msg_recv_expected(na_class_t NA_UNUSED *na_class, na_context_t *context,
+         .tag = tag,
+         .tag_mask = 0};
+ 
+-    return na_ofi_msg_recv(context, NA_CB_RECV_EXPECTED, callback, arg,
+-        &msg_info, na_ofi_addr, (struct na_ofi_op_id *) op_id);
++    return na_ofi_msg_recv(na_class, context, NA_CB_RECV_EXPECTED, callback,
++        arg, &msg_info, na_ofi_addr, (struct na_ofi_op_id *) op_id);
+ }
+ 
+ /*---------------------------------------------------------------------------*/
+@@ -6375,7 +6427,8 @@ na_ofi_progress(
+         }
+ 
+         /* Attempt to process retries */
+-        ret = na_ofi_cq_process_retries(NA_OFI_CONTEXT(context));
++        ret = na_ofi_cq_process_retries(
++            NA_OFI_CONTEXT(context), NA_OFI_CLASS(na_class)->op_retry_period);
+         NA_CHECK_SUBSYS_NA_ERROR(poll, error, ret, "Could not process retries");
+ 
+         if (actual_count > 0)
+-- 
+2.38.1
+
