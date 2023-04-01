@@ -1,14 +1,28 @@
+diff --git a/src/na/na_ofi.c b/src/na/na_ofi.c
+index b62c28c..d80ddac 100644
+--- a/src/na/na_ofi.c
++++ b/src/na/na_ofi.c
+@@ -133,7 +133,7 @@
+       "tcp",                                                                   \
+       FI_SOCKADDR_IN,                                                          \
+       FI_SOCKADDR_IN,                                                          \
+-      FI_PROGRESS_MANUAL,                                                      \
++      FI_PROGRESS_MANUAL,                                                        \
+       FI_PROTO_RXM,                                                            \
+       FI_SOURCE | FI_DIRECTED_RECV,                                            \
+       NA_OFI_DOM_IFACE | NA_OFI_WAIT_FD | NA_OFI_SOURCE_MSG                    \
 diff --git a/src/na/na_ucx.c b/src/na/na_ucx.c
-index db4fc75..18989ee 100644
+index db4fc75..43cc91f 100644
 --- a/src/na/na_ucx.c
 +++ b/src/na/na_ucx.c
-@@ -1,5 +1,5 @@
+@@ -1,6 +1,6 @@
  /**
-- * Copyright (c) 2013-2022 UChicago Argonne, LLC and The HDF Group.
-+ * Copyright (c) 2013-2021 UChicago Argonne, LLC and The HDF Group.
-  * Copyright (c) 2022 Intel Corporation.
+  * Copyright (c) 2013-2022 UChicago Argonne, LLC and The HDF Group.
+- * Copyright (c) 2022 Intel Corporation.
++ * Copyright (c) 2022-2023 Intel Corporation.
   *
   * SPDX-License-Identifier: BSD-3-Clause
+  */
 @@ -23,6 +23,7 @@
  
  #include <netdb.h>
@@ -289,7 +303,7 @@ index db4fc75..18989ee 100644
          .conn_request = NULL};
  
 +    if (local_addr) {
-+    	ep_params.field_mask |= UCP_EP_PARAM_FIELD_LOCAL_SOCK_ADDR;
++        ep_params.field_mask |= UCP_EP_PARAM_FIELD_LOCAL_SOCK_ADDR;
 +        ep_params.local_sockaddr.addr = (const struct sockaddr*) local_addr;
 +        ep_params.local_sockaddr.addrlen = sizeof(*local_addr);
 +    }
@@ -619,7 +633,7 @@ index db4fc75..18989ee 100644
 +            addr, error, ret, "Could not connect UCP endpoint");
 +        na_ucx_ep_map_replace(na_ucx_addr, old_ep);
 +        na_ucx_addr_ref_incr(na_ucx_addr);
-+    	na_ucx_addr->connected = true;
++        na_ucx_addr->connected = true;
 +    }
 +
      NA_UCX_OP_RESET(na_ucx_op_id, context, NA_CB_SEND_UNEXPECTED, callback, arg,
