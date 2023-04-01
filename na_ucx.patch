@@ -1,27 +1,7 @@
-diff --git a/src/na/na_ofi.c b/src/na/na_ofi.c
-index b62c28c..d80ddac 100644
---- a/src/na/na_ofi.c
-+++ b/src/na/na_ofi.c
-@@ -133,7 +133,7 @@
-       "tcp",                                                                   \
-       FI_SOCKADDR_IN,                                                          \
-       FI_SOCKADDR_IN,                                                          \
--      FI_PROGRESS_MANUAL,                                                      \
-+      FI_PROGRESS_MANUAL,                                                        \
-       FI_PROTO_RXM,                                                            \
-       FI_SOURCE | FI_DIRECTED_RECV,                                            \
-       NA_OFI_DOM_IFACE | NA_OFI_WAIT_FD | NA_OFI_SOURCE_MSG                    \
 diff --git a/src/na/na_ucx.c b/src/na/na_ucx.c
-index db4fc75..0b6997d 100644
+index db4fc75..ee44d4e 100644
 --- a/src/na/na_ucx.c
 +++ b/src/na/na_ucx.c
-@@ -1,5 +1,5 @@
- /**
-- * Copyright (c) 2013-2022 UChicago Argonne, LLC and The HDF Group.
-+ * Copyright (c) 2013-2021 UChicago Argonne, LLC and The HDF Group.
-  * Copyright (c) 2022 Intel Corporation.
-  *
-  * SPDX-License-Identifier: BSD-3-Clause
 @@ -23,6 +23,7 @@
  
  #include <netdb.h>
