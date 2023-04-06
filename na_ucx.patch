@@ -12,7 +12,7 @@ index b62c28c..d80ddac 100644
        FI_SOURCE | FI_DIRECTED_RECV,                                            \
        NA_OFI_DOM_IFACE | NA_OFI_WAIT_FD | NA_OFI_SOURCE_MSG                    \
 diff --git a/src/na/na_ucx.c b/src/na/na_ucx.c
-index db4fc75..fc33103 100644
+index db4fc75..aaffd72 100644
 --- a/src/na/na_ucx.c
 +++ b/src/na/na_ucx.c
 @@ -1,6 +1,6 @@
@@ -89,6 +89,23 @@ index db4fc75..fc33103 100644
      void *err_handler_arg, ucp_ep_h *ep_p);
  
  /**
+@@ -414,14 +425,14 @@ na_ucp_mem_buf_deregister(void *handle, void *arg);
+  */
+ static na_return_t
+ na_ucp_am_send(ucp_ep_h ep, const void *buf, size_t buf_size,
+-    const ucp_tag_t *tag, void *request);
++    const ucp_tag_t *tag, void *request, struct na_ucx_addr *na_ucx_addr);
+ 
+ /**
+  * Send active message callback.
+  */
+ static void
+ na_ucp_am_send_cb(
+-    void *request, ucs_status_t status, void NA_UNUSED *user_data);
++    void *request, ucs_status_t status, void *user_data);
+ 
+ /**
+  * Check if we received an AM or push the op to OP queue.
 @@ -500,12 +511,19 @@ na_ucx_class_alloc(void);
  static void
  na_ucx_class_free(struct na_ucx_class *na_ucx_class);
@@ -312,7 +329,7 @@ index db4fc75..fc33103 100644
          "ucp_listener_query() failed (%s)", ucs_status_string(status));
  
      NA_CHECK_SUBSYS_ERROR(cls,
-@@ -1264,15 +1353,23 @@ na_ucp_accept(ucp_worker_h worker, ucp_conn_request_h conn_request,
+@@ -1264,15 +1353,22 @@ na_ucp_accept(ucp_worker_h worker, ucp_conn_request_h conn_request,
  /*---------------------------------------------------------------------------*/
  static na_return_t
  na_ucp_connect(ucp_worker_h worker, const struct sockaddr *addr,
@@ -330,7 +347,6 @@ index db4fc75..fc33103 100644
          .conn_request = NULL};
  
 +    if (local_addr) {
-+        NA_LOG_SUBSYS_WARNING(addr, "Adding local address to end point");
 +        ep_params.field_mask |= UCP_EP_PARAM_FIELD_LOCAL_SOCK_ADDR;
 +        ep_params.local_sockaddr.addr = (const struct sockaddr*) local_addr;
 +        ep_params.local_sockaddr.addrlen = sizeof(*local_addr);
@@ -338,7 +354,7 @@ index db4fc75..fc33103 100644
      return na_ucp_ep_create(
          worker, &ep_params, err_handler_cb, err_handler_arg, ep_p);
  }
-@@ -1339,7 +1436,7 @@ na_ucp_mem_free(ucp_context_h context, ucp_mem_h mem)
+@@ -1339,7 +1435,7 @@ na_ucp_mem_free(ucp_context_h context, ucp_mem_h mem)
      na_return_t ret;
  
      status = ucp_mem_unmap(context, mem);
@@ -347,7 +363,7 @@ index db4fc75..fc33103 100644
          "ucp_mem_unmap() failed (%s)", ucs_status_string(status));
  
      return NA_SUCCESS;
-@@ -1419,7 +1516,8 @@ na_ucp_ep_create(ucp_worker_h worker, ucp_ep_params_t *ep_params,
+@@ -1419,7 +1515,8 @@ na_ucp_ep_create(ucp_worker_h worker, ucp_ep_params_t *ep_params,
      ep_params->err_handler.arg = err_handler_arg;
  
      status = ucp_ep_create(worker, ep_params, &ep);
@@ -357,7 +373,7 @@ index db4fc75..fc33103 100644
          "ucp_ep_create() failed (%s)", ucs_status_string(status));
  
      *ep_p = ep;
-@@ -1437,9 +1535,12 @@ na_ucp_ep_error_cb(
+@@ -1437,26 +1534,35 @@ na_ucp_ep_error_cb(
  {
      struct na_ucx_addr *na_ucx_addr = (struct na_ucx_addr *) arg;
  
@@ -371,8 +387,38 @@ index db4fc75..fc33103 100644
      /* Will schedule removal of address */
      na_ucx_addr_ref_decr(na_ucx_addr);
  }
-@@ -1471,7 +1572,7 @@ na_ucp_am_send(ucp_ep_h ep, const void *buf, size_t buf_size,
-         na_ucp_am_send_cb(request, UCS_OK, NULL);
+ 
++
+ /*---------------------------------------------------------------------------*/
+ static na_return_t
+ na_ucp_am_send(ucp_ep_h ep, const void *buf, size_t buf_size,
+-    const ucp_tag_t *tag, void *request)
++    const ucp_tag_t *tag, void *request, struct na_ucx_addr* na_ucx_addr)
+ {
+     const ucp_request_param_t send_params = {
+         .op_attr_mask = UCP_OP_ATTR_FIELD_REQUEST | UCP_OP_ATTR_FIELD_CALLBACK |
+-                        UCP_OP_ATTR_FIELD_FLAGS,
++                        UCP_OP_ATTR_FIELD_FLAGS, // | UCP_EP_PARAM_FIELD_USER_DATA,
+         .cb = {.send = na_ucp_am_send_cb},
+         .flags = UCP_AM_SEND_FLAG_REPLY,
+-        .request = request};
++        .request = request,
++	.user_data = na_ucx_addr};
+     ucs_status_ptr_t status_ptr;
+     na_return_t ret;
++    struct na_ucx_class *na_ucx_class = NULL;
++
++    if (na_ucx_addr)
++   	 na_ucx_class = na_ucx_addr->na_ucx_class;
+ 
+     NA_LOG_SUBSYS_DEBUG(
+         msg, "Posting am send with buf_size=%zu, tag=%" PRIu64, buf_size, *tag);
+@@ -1468,10 +1574,10 @@ na_ucp_am_send(ucp_ep_h ep, const void *buf, size_t buf_size,
+         NA_LOG_SUBSYS_DEBUG(msg, "ucp_am_send_nbx() completed immediately");
+ 
+         /* Directly execute callback */
+-        na_ucp_am_send_cb(request, UCS_OK, NULL);
++        na_ucp_am_send_cb(request, UCS_OK, na_ucx_addr);
      } else
          NA_CHECK_SUBSYS_ERROR(msg, UCS_PTR_IS_ERR(status_ptr), error, ret,
 -            NA_PROTOCOL_ERROR, "ucp_am_send_nbx() failed (%s)",
@@ -380,16 +426,55 @@ index db4fc75..fc33103 100644
              ucs_status_string(UCS_PTR_STATUS(status_ptr)));
  
      NA_LOG_SUBSYS_DEBUG(msg, "ucp_am_send_nbx() was posted");
-@@ -1496,7 +1597,7 @@ na_ucp_am_send_cb(void *request, ucs_status_t status, void NA_UNUSED *user_data)
-     if (status == UCS_ERR_CANCELED)
+@@ -1484,20 +1590,41 @@ error:
+ 
+ /*---------------------------------------------------------------------------*/
+ static void
+-na_ucp_am_send_cb(void *request, ucs_status_t status, void NA_UNUSED *user_data)
++na_ucp_am_send_cb(void *request, ucs_status_t status, void *user_data)
+ {
+     na_return_t cb_ret;
++    struct na_ucx_addr *na_ucx_addr = (struct na_ucx_addr *)user_data;
++    struct na_ucx_class *na_ucx_class = NULL;
+ 
+-    NA_LOG_SUBSYS_DEBUG(
+-        msg, "ucp_am_send_nbx() completed (%s)", ucs_status_string(status));
++    if (na_ucx_addr && na_ucx_addr->na_ucx_class)
++        na_ucx_class = na_ucx_addr->na_ucx_class;
+ 
+     if (status == UCS_OK)
+         NA_GOTO_DONE(done, cb_ret, NA_SUCCESS);
+-    if (status == UCS_ERR_CANCELED)
++
++    if (status == UCS_ERR_CANCELED) {
          NA_GOTO_DONE(done, cb_ret, NA_CANCELED);
-     else
+-    else
 -        NA_GOTO_SUBSYS_ERROR(msg, done, cb_ret, NA_PROTOCOL_ERROR,
++    } else if (na_ucx_class) {
++        struct sockaddr_in connect_addr;
++        char o_host_string[NI_MAXHOST];
++        char o_serv_string[NI_MAXSERV];
++        char d_host_string[NI_MAXHOST];
++        char d_serv_string[NI_MAXSERV];
++
++        getnameinfo((const struct sockaddr *) na_ucx_class->origin_addr,
++            sizeof(struct sockaddr_storage), o_host_string, sizeof(o_host_string),
++            o_serv_string, sizeof(o_serv_string), NI_NUMERICHOST | NI_NUMERICSERV);
++        getnameinfo((const struct sockaddr *) &(na_ucx_addr->ss_addr),
++            sizeof(struct sockaddr_storage), d_host_string, sizeof(d_host_string),
++            d_serv_string, sizeof(d_serv_string), NI_NUMERICHOST | NI_NUMERICSERV);
++        NA_GOTO_SUBSYS_ERROR(msg, done, cb_ret, na_ucx_status_to_na(status),
++            "ucp_am_send_nbx() succeeded (%s), ohost: %s, oserv: %s, dhost: %s, dserv:%s",
++             ucs_status_string(status), o_host_string, o_serv_string, d_host_string,
++             d_serv_string);
++    } else {
 +        NA_GOTO_SUBSYS_ERROR(msg, done, cb_ret, na_ucx_status_to_na(status),
              "ucp_am_send_nbx() failed (%s)", ucs_status_string(status));
++    }
  
  done:
-@@ -1660,7 +1761,7 @@ na_ucp_msg_send(
+     na_ucx_complete((struct na_ucx_op_id *) request, cb_ret);
+@@ -1660,7 +1787,7 @@ na_ucp_msg_send(
          na_ucp_msg_send_cb(request, UCS_OK, NULL);
      } else
          NA_CHECK_SUBSYS_ERROR(msg, UCS_PTR_IS_ERR(status_ptr), error, ret,
@@ -398,7 +483,7 @@ index db4fc75..fc33103 100644
              ucs_status_string(UCS_PTR_STATUS(status_ptr)));
  
      NA_LOG_SUBSYS_DEBUG(msg, "ucp_tag_send_nbx() was posted");
-@@ -1686,7 +1787,7 @@ na_ucp_msg_send_cb(
+@@ -1686,7 +1813,7 @@ na_ucp_msg_send_cb(
      if (status == UCS_ERR_CANCELED)
          NA_GOTO_DONE(done, cb_ret, NA_CANCELED);
      else
@@ -407,7 +492,7 @@ index db4fc75..fc33103 100644
              "ucp_tag_send_nbx() failed (%s)", ucs_status_string(status));
  
  done:
-@@ -1721,7 +1822,7 @@ na_ucp_msg_recv(ucp_worker_h worker, void *buf, size_t buf_size, ucp_tag_t tag,
+@@ -1721,7 +1848,7 @@ na_ucp_msg_recv(ucp_worker_h worker, void *buf, size_t buf_size, ucp_tag_t tag,
          na_ucp_msg_recv_cb(request, UCS_OK, &tag_recv_info, NULL);
      } else
          NA_CHECK_SUBSYS_ERROR(msg, UCS_PTR_IS_ERR(status_ptr), error, ret,
@@ -416,7 +501,7 @@ index db4fc75..fc33103 100644
              ucs_status_string(UCS_PTR_STATUS(status_ptr)));
  
      NA_LOG_SUBSYS_DEBUG(msg, "ucp_tag_recv_nbx() was posted");
-@@ -1752,7 +1853,7 @@ na_ucp_msg_recv_cb(void *request, ucs_status_t status,
+@@ -1752,7 +1879,7 @@ na_ucp_msg_recv_cb(void *request, ucs_status_t status,
      else if (status == UCS_ERR_CANCELED)
          NA_GOTO_DONE(done, cb_ret, NA_CANCELED);
      else
@@ -425,7 +510,7 @@ index db4fc75..fc33103 100644
              "ucp_tag_recv_nbx() failed (%s)", ucs_status_string(status));
  
      NA_CHECK_SUBSYS_ERROR(msg,
-@@ -1796,7 +1897,7 @@ na_ucp_put(ucp_ep_h ep, void *buf, size_t buf_size, uint64_t remote_addr,
+@@ -1796,7 +1923,7 @@ na_ucp_put(ucp_ep_h ep, void *buf, size_t buf_size, uint64_t remote_addr,
          na_ucp_rma_cb(request, UCS_OK, NULL);
      } else
          NA_CHECK_SUBSYS_ERROR(rma, UCS_PTR_IS_ERR(status_ptr), error, ret,
@@ -434,7 +519,7 @@ index db4fc75..fc33103 100644
              ucs_status_string(UCS_PTR_STATUS(status_ptr)));
  
      NA_LOG_SUBSYS_DEBUG(rma, "ucp_put_nbx() was posted");
-@@ -1828,7 +1929,7 @@ na_ucp_get(ucp_ep_h ep, void *buf, size_t buf_size, uint64_t remote_addr,
+@@ -1828,7 +1955,7 @@ na_ucp_get(ucp_ep_h ep, void *buf, size_t buf_size, uint64_t remote_addr,
          na_ucp_rma_cb(request, UCS_OK, NULL);
      } else
          NA_CHECK_SUBSYS_ERROR(rma, UCS_PTR_IS_ERR(status_ptr), error, ret,
@@ -443,7 +528,7 @@ index db4fc75..fc33103 100644
              ucs_status_string(UCS_PTR_STATUS(status_ptr)));
  
      NA_LOG_SUBSYS_DEBUG(rma, "ucp_get_nbx() was posted");
-@@ -1854,7 +1955,7 @@ na_ucp_rma_cb(void *request, ucs_status_t status, void NA_UNUSED *user_data)
+@@ -1854,7 +1981,7 @@ na_ucp_rma_cb(void *request, ucs_status_t status, void NA_UNUSED *user_data)
      if (status == UCS_ERR_CANCELED)
          NA_GOTO_DONE(done, cb_ret, NA_CANCELED);
      else
@@ -452,7 +537,7 @@ index db4fc75..fc33103 100644
              "na_ucp_rma_cb() failed (%s)", ucs_status_string(status));
  
  done:
-@@ -1943,22 +2044,40 @@ na_ucx_class_free(struct na_ucx_class *na_ucx_class)
+@@ -1943,22 +2070,39 @@ na_ucx_class_free(struct na_ucx_class *na_ucx_class)
      (void) hg_thread_spin_destroy(&na_ucx_class->unexpected_msg_queue.lock);
      (void) hg_thread_spin_destroy(&na_ucx_class->addr_pool.lock);
  
@@ -468,7 +553,6 @@ index db4fc75..fc33103 100644
 +    struct sockaddr_storage *ss_addr = calloc(1, sizeof(*ss_addr));
 +    struct sockaddr_in *sa = (struct sockaddr_in *) ss_addr;
 +
-+    NA_LOG_SUBSYS_WARNING(addr, "Setting origin address");
 +    sa->sin_family = AF_INET;
 +    sa->sin_addr.s_addr = inet_addr(hostaddr);
 +    sa->sin_port = 0;
@@ -494,7 +578,7 @@ index db4fc75..fc33103 100644
          hostname = strdup(hostname_info);
          NA_CHECK_SUBSYS_ERROR(cls, hostname == NULL, done, ret, NA_NOMEM,
              "strdup() of hostname failed");
-@@ -1976,6 +2095,8 @@ na_ucx_parse_hostname_info(const char *hostname_info, const char *subnet_info,
+@@ -1976,6 +2120,8 @@ na_ucx_parse_hostname_info(const char *hostname_info, const char *subnet_info,
                  *net_device_p = strdup(hostname);
                  NA_CHECK_SUBSYS_ERROR(cls, *net_device_p == NULL, done, ret,
                      NA_NOMEM, "strdup() of net_device failed");
@@ -503,7 +587,7 @@ index db4fc75..fc33103 100644
              }
              if (strcmp(host_str, "") == 0)
                  hostname = NULL;
-@@ -1999,6 +2120,8 @@ na_ucx_parse_hostname_info(const char *hostname_info, const char *subnet_info,
+@@ -1999,6 +2145,8 @@ na_ucx_parse_hostname_info(const char *hostname_info, const char *subnet_info,
      /* TODO add support for IPv6 wildcards */
  
      if (hostname && strcmp(hostname, "0.0.0.0") != 0) {
@@ -512,7 +596,7 @@ index db4fc75..fc33103 100644
          /* Try to get matching IP/device */
          ret = na_ip_check_interface(
              hostname, port, AF_UNSPEC, ifa_name_p, sockaddr_p, addrlen_p);
-@@ -2102,10 +2225,12 @@ na_ucx_addr_map_insert(struct na_ucx_class *na_ucx_class,
+@@ -2102,10 +2250,12 @@ na_ucx_addr_map_insert(struct na_ucx_class *na_ucx_class,
          /* Create new endpoint */
          ret = na_ucp_connect(na_ucx_class->ucp_worker,
              na_ucx_addr->addr_key.addr, na_ucx_addr->addr_key.addrlen,
@@ -525,7 +609,7 @@ index db4fc75..fc33103 100644
      NA_LOG_SUBSYS_DEBUG(addr, "UCP ep for addr %p is %p", (void *) na_ucx_addr,
          (void *) na_ucx_addr->ucp_ep);
  
-@@ -2138,6 +2263,27 @@ error:
+@@ -2138,6 +2288,27 @@ error:
      return ret;
  }
  
@@ -553,7 +637,7 @@ index db4fc75..fc33103 100644
  /*---------------------------------------------------------------------------*/
  static na_return_t
  na_ucx_addr_map_remove(struct na_ucx_map *na_ucx_map, ucs_sock_addr_t *addr_key)
-@@ -2257,7 +2403,6 @@ na_ucx_addr_release(struct na_ucx_addr *na_ucx_addr)
+@@ -2257,7 +2428,6 @@ na_ucx_addr_release(struct na_ucx_addr *na_ucx_addr)
      /* Make sure we remove from map before we close the EP */
      if (na_ucx_addr->addr_key.addr) {
          NA_UCX_PRINT_ADDR_KEY_INFO("Removing address", &na_ucx_addr->addr_key);
@@ -561,7 +645,7 @@ index db4fc75..fc33103 100644
          na_ucx_addr_map_remove(
              &na_ucx_addr->na_ucx_class->addr_map, &na_ucx_addr->addr_key);
      }
-@@ -2429,7 +2574,7 @@ na_ucx_rma_key_resolve(ucp_ep_h ep, struct na_ucx_mem_handle *na_ucx_mem_handle,
+@@ -2429,7 +2599,7 @@ na_ucx_rma_key_resolve(ucp_ep_h ep, struct na_ucx_mem_handle *na_ucx_mem_handle,
              ucs_status_t status = ucp_ep_rkey_unpack(ep,
                  na_ucx_mem_handle->rkey_buf, &na_ucx_mem_handle->ucp_mr.rkey);
              NA_CHECK_SUBSYS_ERROR(mem, status != UCS_OK, error, ret,
@@ -570,7 +654,7 @@ index db4fc75..fc33103 100644
                  ucs_status_string(status));
              /* Handle is now unpacked */
              hg_atomic_set32(
-@@ -2485,6 +2630,28 @@ na_ucx_release(void *arg)
+@@ -2485,6 +2655,28 @@ na_ucx_release(void *arg)
      }
  }
  
@@ -599,7 +683,7 @@ index db4fc75..fc33103 100644
  /********************/
  /* Plugin callbacks */
  /********************/
-@@ -2533,6 +2700,7 @@ na_ucx_initialize(
+@@ -2533,6 +2725,7 @@ na_ucx_initialize(
      char *net_device = NULL;
      struct sockaddr *listen_sockaddr = NULL;
      socklen_t listen_addrlen = 0;
@@ -607,7 +691,7 @@ index db4fc75..fc33103 100644
      struct sockaddr_storage ucp_listener_ss_addr;
      ucs_sock_addr_t addr_key = {.addr = NULL, .addrlen = 0};
      ucp_config_t *config;
-@@ -2572,7 +2740,7 @@ na_ucx_initialize(
+@@ -2572,7 +2765,7 @@ na_ucx_initialize(
  #ifdef NA_UCX_HAS_LIB_QUERY
      ucp_lib_attrs.field_mask = UCP_LIB_ATTR_FIELD_MAX_THREAD_LEVEL;
      status = ucp_lib_query(&ucp_lib_attrs);
@@ -616,7 +700,7 @@ index db4fc75..fc33103 100644
          "ucp_context_query: %s", ucs_status_string(status));
      NA_CHECK_SUBSYS_ERROR(cls,
          (ucp_lib_attrs.field_mask & UCP_LIB_ATTR_FIELD_MAX_THREAD_LEVEL) == 0,
-@@ -2594,7 +2762,8 @@ na_ucx_initialize(
+@@ -2594,7 +2787,8 @@ na_ucx_initialize(
          (na_info->na_init_info && na_info->na_init_info->ip_subnet)
              ? na_info->na_init_info->ip_subnet
              : NULL,
@@ -626,7 +710,7 @@ index db4fc75..fc33103 100644
      NA_CHECK_SUBSYS_NA_ERROR(
          cls, error, ret, "na_ucx_parse_hostname_info() failed");
  
-@@ -2603,6 +2772,7 @@ na_ucx_initialize(
+@@ -2603,6 +2797,7 @@ na_ucx_initialize(
      NA_CHECK_SUBSYS_ERROR(cls, na_ucx_class == NULL, error, ret, NA_NOMEM,
          "Could not allocate NA UCX class");
  
@@ -634,7 +718,7 @@ index db4fc75..fc33103 100644
      /* Keep a copy of the protocol name */
      na_ucx_class->protocol_name = (na_info->protocol_name)
                                        ? strdup(na_info->protocol_name)
-@@ -2806,7 +2976,7 @@ na_ucx_addr_lookup(na_class_t *na_class, const char *name, na_addr_t *addr_p)
+@@ -2806,7 +3001,7 @@ na_ucx_addr_lookup(na_class_t *na_class, const char *name, na_addr_t *addr_p)
          strncmp(name, "all", strlen("all")) &&
              strncmp(name, na_ucx_class->protocol_name,
                  strlen(na_ucx_class->protocol_name)),
@@ -643,7 +727,7 @@ index db4fc75..fc33103 100644
          "Protocol not supported by this class (%s)",
          na_ucx_class->protocol_name);
  
-@@ -3099,13 +3269,14 @@ done:
+@@ -3099,13 +3294,14 @@ done:
  
  /*---------------------------------------------------------------------------*/
  static na_return_t
@@ -660,7 +744,7 @@ index db4fc75..fc33103 100644
      na_return_t ret;
  
      /* Check op_id */
-@@ -3116,13 +3287,32 @@ na_ucx_msg_send_unexpected(na_class_t NA_UNUSED *na_class,
+@@ -3116,15 +3312,34 @@ na_ucx_msg_send_unexpected(na_class_t NA_UNUSED *na_class,
          ret, NA_BUSY, "Attempting to use OP ID that was not completed (%s)",
          na_cb_type_to_string(na_ucx_op_id->completion_data.callback_info.type));
  
@@ -692,9 +776,12 @@ index db4fc75..fc33103 100644
 +        goto release;
 +    }
      ret = na_ucp_am_send(na_ucx_addr->ucp_ep, buf, buf_size,
-         &na_ucx_op_id->info.msg.tag, na_ucx_op_id);
+-        &na_ucx_op_id->info.msg.tag, na_ucx_op_id);
++        &na_ucx_op_id->info.msg.tag, na_ucx_op_id, na_ucx_addr);
      NA_CHECK_SUBSYS_NA_ERROR(msg, release, ret, "Could not post msg send");
-@@ -3152,7 +3342,7 @@ na_ucx_msg_recv_unexpected(na_class_t *na_class, na_context_t *context,
+ 
+     return NA_SUCCESS;
+@@ -3152,7 +3367,7 @@ na_ucx_msg_recv_unexpected(na_class_t *na_class, na_context_t *context,
          !(hg_atomic_get32(&na_ucx_op_id->status) & NA_UCX_OP_COMPLETED), error,
          ret, NA_BUSY, "Attempting to use OP ID that was not completed (%s)",
          na_cb_type_to_string(na_ucx_op_id->completion_data.callback_info.type));
@@ -703,7 +790,7 @@ index db4fc75..fc33103 100644
      NA_UCX_OP_RESET(
          na_ucx_op_id, context, NA_CB_RECV_UNEXPECTED, callback, arg, NULL);
  
-@@ -3382,7 +3572,7 @@ na_ucx_mem_register(na_class_t *na_class, na_mem_handle_t mem_handle,
+@@ -3382,7 +3597,7 @@ na_ucx_mem_register(na_class_t *na_class, na_mem_handle_t mem_handle,
      /* Register memory */
      status = ucp_mem_map(NA_UCX_CLASS(na_class)->ucp_context, &mem_map_params,
          &na_ucx_mem_handle->ucp_mr.mem);
@@ -712,7 +799,7 @@ index db4fc75..fc33103 100644
          "ucp_mem_map() failed (%s)", ucs_status_string(status));
  
      /* Keep a copy of the rkey to share with the remote */
-@@ -3390,7 +3580,7 @@ na_ucx_mem_register(na_class_t *na_class, na_mem_handle_t mem_handle,
+@@ -3390,7 +3605,7 @@ na_ucx_mem_register(na_class_t *na_class, na_mem_handle_t mem_handle,
      status = ucp_rkey_pack(NA_UCX_CLASS(na_class)->ucp_context,
          na_ucx_mem_handle->ucp_mr.mem, &na_ucx_mem_handle->rkey_buf,
          &rkey_buf_size);
@@ -721,7 +808,7 @@ index db4fc75..fc33103 100644
          "ucp_rkey_pack() failed (%s)", ucs_status_string(status));
      na_ucx_mem_handle->desc.rkey_buf_size = (uint64_t) rkey_buf_size;
  
-@@ -3417,7 +3607,7 @@ na_ucx_mem_deregister(na_class_t *na_class, na_mem_handle_t mem_handle)
+@@ -3417,7 +3632,7 @@ na_ucx_mem_deregister(na_class_t *na_class, na_mem_handle_t mem_handle)
      /* Deregister memory */
      status = ucp_mem_unmap(
          NA_UCX_CLASS(na_class)->ucp_context, na_ucx_mem_handle->ucp_mr.mem);
