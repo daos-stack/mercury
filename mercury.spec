@@ -1,5 +1,5 @@
 Name: mercury
-Version: 2.3.0~rc4
+Version: 2.3.0~rc5
 Release: 1%{?dist}
 
 # dl_version is version with ~ removed
@@ -18,6 +18,10 @@ Release: 1%{?dist}
 # but assume that anything else does also
 %global ucx 1
 %endif
+
+# necessary for old cmake environments (e.g., CentOS7)
+%{?!cmake_build:%global cmake_build %__cmake --build %{_vpath_srcdir}}
+%{?!cmake_install:%global cmake_install %make_install}
 
 Summary:  RPC library for HPC systems
 License:  BSD
@@ -77,35 +81,30 @@ Mercury plugin to support the UCX transport.
 %autosetup -p1 -n mercury-%dl_version
 
 %build
-%cmake  -DCMAKE_IN_SOURCE_BUILD:BOOL=ON             \
-        -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo    \
-        -DCMAKE_SKIP_INSTALL_RPATH:BOOL=ON          \
-        -DBUILD_DOCUMENTATION:BOOL=OFF              \
-        -DBUILD_EXAMPLES:BOOL=OFF                   \
-        -DBUILD_TESTING:BOOL=ON                     \
-        -DBUILD_TESTING_PERF:BOOL=ON                \
-        -DBUILD_TESTING_UNIT:BOOL=OFF               \
-        -DMERCURY_ENABLE_DEBUG:BOOL=ON              \
-        -DMERCURY_INSTALL_DATA_DIR:PATH=%{_libdir}  \
-        -DMERCURY_INSTALL_LIB_DIR:PATH=%{_libdir}   \
-        -DMERCURY_USE_BOOST_PP:BOOL=ON              \
-        -DMERCURY_USE_CHECKSUMS:BOOL=OFF            \
-        -DMERCURY_USE_SYSTEM_BOOST:BOOL=ON          \
-        -DMERCURY_USE_XDR:BOOL=OFF                  \
-        -DNA_USE_DYNAMIC_PLUGINS:BOOL=ON            \
-        -DNA_DEFAULT_PLUGIN_PATH:PATH=%{_libdir}    \
-        -DNA_USE_SM:BOOL=ON                         \
-        -DNA_USE_UCX:BOOL=%{ucx}                    \
+%cmake  -DCMAKE_IN_SOURCE_BUILD:BOOL=ON                   \
+        -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo          \
+        -DCMAKE_SKIP_INSTALL_RPATH:BOOL=ON                \
+        -DBUILD_DOCUMENTATION:BOOL=OFF                    \
+        -DBUILD_EXAMPLES:BOOL=OFF                         \
+        -DBUILD_TESTING:BOOL=ON                           \
+        -DBUILD_TESTING_PERF:BOOL=ON                      \
+        -DBUILD_TESTING_UNIT:BOOL=OFF                     \
+        -DMERCURY_ENABLE_DEBUG:BOOL=ON                    \
+        -DMERCURY_INSTALL_DATA_DIR:PATH=%{_libdir}        \
+        -DMERCURY_INSTALL_LIB_DIR:PATH=%{_libdir}         \
+        -DMERCURY_USE_BOOST_PP:BOOL=ON                    \
+        -DMERCURY_USE_CHECKSUMS:BOOL=OFF                  \
+        -DMERCURY_USE_SYSTEM_BOOST:BOOL=ON                \
+        -DMERCURY_USE_XDR:BOOL=OFF                        \
+        -DNA_USE_DYNAMIC_PLUGINS:BOOL=ON                  \
+        -DNA_INSTALL_PLUGIN_DIR:PATH=%{_libdir}/mercury   \
+        -DNA_USE_SM:BOOL=ON                               \
+        -DNA_USE_UCX:BOOL=%{ucx}                          \
         -DNA_USE_OFI:BOOL=ON
-
-%{?cmake_build}
-# necessary for old cmake environments (e.g., CentOS7)
-%{!?cmake_build:%__cmake --build %{_vpath_srcdir}}
+%cmake_build
 
 %install
-%{?cmake_install}
-# necessary for old cmake environments (e.g., CentOS7)
-%{!?cmake_install:%make_install}
+%cmake_install
 
 %if 0%{?suse_version} >= 1315
 # only suse needs this; EL bakes it into glibc
@@ -122,11 +121,11 @@ Mercury plugin to support the UCX transport.
 %{_bindir}/hg_*
 %{_bindir}/na_*
 %{_libdir}/*.so.*
-%{_libdir}/libna_plugin_ofi.so
+%{_libdir}/mercury/libna_plugin_ofi.so
 
 %if %{ucx}
 %files ucx
-%{_libdir}/libna_plugin_ucx.so
+%{_libdir}/mercury/libna_plugin_ucx.so
 %endif
 
 %files devel
@@ -140,8 +139,8 @@ Mercury plugin to support the UCX transport.
 %{_libdir}/cmake/
 
 %changelog
-* Fri Mar 31 2023 Jerome Soumagne <jerome.soumagne@intel.com> - 2.3.0~rc4-1
-- Update to 2.3.0rc4
+* Wed Apr 12 2023 Jerome Soumagne <jerome.soumagne@intel.com> - 2.3.0~rc5-1
+- Update to 2.3.0rc5
 - Remove na_ucx.c patch
 - Update build to make use of NA dynamic plugins
 - Fix source URL and package perf tests
