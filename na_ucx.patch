@@ -12,7 +12,7 @@ index b62c28c..d80ddac 100644
        FI_SOURCE | FI_DIRECTED_RECV,                                            \
        NA_OFI_DOM_IFACE | NA_OFI_WAIT_FD | NA_OFI_SOURCE_MSG                    \
 diff --git a/src/na/na_ucx.c b/src/na/na_ucx.c
-index db4fc75..b82ee48 100644
+index db4fc75..ec05084 100644
 --- a/src/na/na_ucx.c
 +++ b/src/na/na_ucx.c
 @@ -1,6 +1,6 @@
@@ -414,13 +414,11 @@ index db4fc75..b82ee48 100644
  
      NA_LOG_SUBSYS_DEBUG(
          msg, "Posting am send with buf_size=%zu, tag=%" PRIu64, buf_size, *tag);
-@@ -1465,15 +1572,34 @@ na_ucp_am_send(ucp_ep_h ep, const void *buf, size_t buf_size,
-         ep, NA_UCX_AM_MSG_ID, tag, sizeof(*tag), buf, buf_size, &send_params);
+@@ -1466,14 +1573,33 @@ na_ucp_am_send(ucp_ep_h ep, const void *buf, size_t buf_size,
      if (status_ptr == NULL) {
          /* Check for immediate completion */
--        NA_LOG_SUBSYS_DEBUG(msg, "ucp_am_send_nbx() completed immediately");
+         NA_LOG_SUBSYS_DEBUG(msg, "ucp_am_send_nbx() completed immediately");
 -
-+        NA_LOG_SUBSYS_WARNING(msg, "ucp_am_send_nbx() completed immediately");
          /* Directly execute callback */
 -        na_ucp_am_send_cb(request, UCS_OK, NULL);
 -    } else
