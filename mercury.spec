@@ -28,6 +28,7 @@ License:  BSD
 Group:    Development/Libraries
 URL:      http://mercury-hpc.github.io/
 Source0:  https://github.com/mercury-hpc/%{name}/releases/download/v%{dl_version}/%{name}-%{dl_version}.tar.bz2
+Patch0:   https://github.com/mercury-hpc/mercury/commit/8007bd7d7467100983948f76c9232a3eb7d281c6.patch
 
 BuildRequires:  libfabric-devel >= 1.14.0
 BuildRequires:  cmake
