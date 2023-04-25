@@ -19,6 +19,14 @@ Release: 1%{?dist}
 %global ucx 1
 %endif
 
+# do not build perf binaries on CentOS7 due to CMake PIE issues
+# see: https://cmake.org/cmake/help/latest/policy/CMP0083.html#policy:CMP0083
+%if 0%{?rhel} >= 8 || 0%{?suse_version} >= 1315
+%global __build_perf 1
+%else
+%global __build_perf 0
+%endif
+
 # necessary for old cmake environments (e.g., CentOS7)
 %{?!cmake_build:%global cmake_build %__cmake --build %{_vpath_srcdir}}
 %{?!cmake_install:%global cmake_install %make_install}
@@ -88,8 +96,8 @@ Mercury plugin to support the UCX transport.
         -DCMAKE_SKIP_INSTALL_RPATH:BOOL=ON                \
         -DBUILD_DOCUMENTATION:BOOL=OFF                    \
         -DBUILD_EXAMPLES:BOOL=OFF                         \
-        -DBUILD_TESTING:BOOL=ON                           \
-        -DBUILD_TESTING_PERF:BOOL=ON                      \
+        -DBUILD_TESTING:BOOL=%{__build_perf}              \
+        -DBUILD_TESTING_PERF:BOOL=%{__build_perf}         \
         -DBUILD_TESTING_UNIT:BOOL=OFF                     \
         -DMERCURY_ENABLE_DEBUG:BOOL=ON                    \
         -DMERCURY_INSTALL_DATA_DIR:PATH=%{_libdir}        \
@@ -120,8 +128,11 @@ Mercury plugin to support the UCX transport.
 
 %files
 %license LICENSE.txt
+%doc Documentation/CHANGES.md
+%if %{__build_perf}
 %{_bindir}/hg_*
 %{_bindir}/na_*
+%endif
 %{_libdir}/*.so.*
 %{_libdir}/mercury/libna_plugin_ofi.so
 
@@ -141,7 +152,7 @@ Mercury plugin to support the UCX transport.
 %{_libdir}/cmake/
 
 %changelog
-* Mon Apr 24 2023 Jerome Soumagne <jerome.soumagne@intel.com> - 2.3.0~rc5-1
+* Tue Apr 25 2023 Jerome Soumagne <jerome.soumagne@intel.com> - 2.3.0~rc5-1
 - Update to 2.3.0rc5
 - Remove na_ucx.c patch and add temporary na_ucx_src_port.patch
 - Update build to make use of NA dynamic plugins

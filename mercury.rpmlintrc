@@ -1,0 +1,8 @@
+# This line is mandatory to access the configuration functions
+from Config import *
+
+# we currently do not provider manpages for binaries
+addFilter('no-manual-page-for-binary')
+
+# no documentation for ucx plugin
+addFilter('no-documentation')
