@@ -1,0 +1,27 @@
+From 7b3be638ac216f158ab6b2938828658d1b528278 Mon Sep 17 00:00:00 2001
+From: Jerome Soumagne <jerome.soumagne@intel.com>
+Date: Wed, 26 Apr 2023 16:20:04 -0500
+Subject: [PATCH] Reduce post init defaults
+
+---
+ src/mercury_core.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/mercury_core.c b/src/mercury_core.c
+index 9c42b783..391744b9 100644
+--- a/src/mercury_core.c
++++ b/src/mercury_core.c
+@@ -42,8 +42,8 @@
+ #define HG_CORE_ATOMIC_QUEUE_SIZE (1024)
+ 
+ /* Pre-posted requests and op IDs */
+-#define HG_CORE_POST_INIT          (512)
+-#define HG_CORE_POST_INCR          (512)
++#define HG_CORE_POST_INIT          (256)
++#define HG_CORE_POST_INCR          (256)
+ #define HG_CORE_BULK_OP_INIT_COUNT (256)
+ 
+ /* Number of multi-recv buffer pre-posted */
+-- 
+2.40.0
+
