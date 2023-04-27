@@ -1,23 +1,13 @@
 Name: mercury
 Version: 2.3.0~rc5
-Release: 3%{?dist}
+Release: 4%{?dist}
 
 # dl_version is version with ~ removed
 %{lua:
     rpm.define("dl_version " .. string.gsub(rpm.expand("%{version}"), "~", ""))
 }
 
-%if 0%{?rhel} > 0
-%if 0%{?rhel} > 7
-# only RHEL 8+ has a new enough ucx-devel
-%global ucx 1
-%else
 %global ucx 0
-%endif
-%else
-# but assume that anything else does also
-%global ucx 1
-%endif
 
 # do not build perf binaries on CentOS7 due to CMake PIE issues
 # see: https://cmake.org/cmake/help/latest/policy/CMP0083.html#policy:CMP0083
@@ -107,7 +97,7 @@ Mercury plugin to support the UCX transport.
         -DMERCURY_USE_CHECKSUMS:BOOL=OFF                  \
         -DMERCURY_USE_SYSTEM_BOOST:BOOL=ON                \
         -DMERCURY_USE_XDR:BOOL=OFF                        \
-        -DNA_USE_DYNAMIC_PLUGINS:BOOL=ON                  \
+        -DNA_USE_DYNAMIC_PLUGINS:BOOL=OFF                 \
         -DNA_INSTALL_PLUGIN_DIR:PATH=%{_libdir}/mercury   \
         -DNA_USE_SM:BOOL=ON                               \
         -DNA_USE_UCX:BOOL=%{ucx}                          \
@@ -135,7 +125,6 @@ Mercury plugin to support the UCX transport.
 %{_bindir}/na_*
 %endif
 %{_libdir}/*.so.*
-%{_libdir}/mercury/libna_plugin_ofi.so
 
 %if %{ucx}
 %files ucx
@@ -153,6 +142,9 @@ Mercury plugin to support the UCX transport.
 %{_libdir}/cmake/
 
 %changelog
+* Tue Apr 25 2023 Jerome Soumagne <jerome.soumagne@intel.com> - 2.3.0~rc5-4
+- Remove ucx and dynamic plugins
+
 * Tue Apr 25 2023 Jerome Soumagne <jerome.soumagne@intel.com> - 2.3.0~rc5-3
 - Turn off debug
 
