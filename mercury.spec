@@ -1,6 +1,6 @@
 Name: mercury
 Version: 2.3.0~rc5
-Release: 2%{?dist}
+Release: 3%{?dist}
 
 # dl_version is version with ~ removed
 %{lua:
@@ -100,7 +100,7 @@ Mercury plugin to support the UCX transport.
         -DBUILD_TESTING:BOOL=%{__build_perf}              \
         -DBUILD_TESTING_PERF:BOOL=%{__build_perf}         \
         -DBUILD_TESTING_UNIT:BOOL=OFF                     \
-        -DMERCURY_ENABLE_DEBUG:BOOL=ON                    \
+        -DMERCURY_ENABLE_DEBUG:BOOL=OFF                   \
         -DMERCURY_INSTALL_DATA_DIR:PATH=%{_libdir}        \
         -DMERCURY_INSTALL_LIB_DIR:PATH=%{_libdir}         \
         -DMERCURY_USE_BOOST_PP:BOOL=ON                    \
@@ -153,6 +153,9 @@ Mercury plugin to support the UCX transport.
 %{_libdir}/cmake/
 
 %changelog
+* Tue Apr 25 2023 Jerome Soumagne <jerome.soumagne@intel.com> - 2.3.0~rc5-3
+- Turn off debug
+
 * Tue Apr 25 2023 Jerome Soumagne <jerome.soumagne@intel.com> - 2.3.0~rc5-2
 - Add cxi test patch
 
