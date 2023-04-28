@@ -1,6 +1,6 @@
 Name: mercury
 Version: 2.3.0~rc5
-Release: 4%{?dist}
+Release: 5%{?dist}
 
 # dl_version is version with ~ removed
 %{lua:
@@ -29,6 +29,7 @@ Source0:  https://github.com/mercury-hpc/%{name}/releases/download/v%{dl_version
 # https://github.com/mercury-hpc/mercury/commit/8007bd7d7467100983948f76c9232a3eb7d281c6.patch
 Patch0:   na_ucx_src_port.patch
 Patch1:   mercury_init_defaults.patch
+Patch2:   test.patch
 
 BuildRequires:  libfabric-devel >= 1.14.0
 BuildRequires:  cmake
@@ -142,6 +143,9 @@ Mercury plugin to support the UCX transport.
 %{_libdir}/cmake/
 
 %changelog
+* Tue Apr 25 2023 Jerome Soumagne <jerome.soumagne@intel.com> - 2.3.0~rc5-5
+- Remove ucx and dynamic plugins
+
 * Tue Apr 25 2023 Jerome Soumagne <jerome.soumagne@intel.com> - 2.3.0~rc5-4
 - Remove ucx and dynamic plugins
 
