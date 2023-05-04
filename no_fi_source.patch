@@ -1,0 +1,38 @@
+From 721c28a724d0265c77cc50a2b8df6d4d8873e75b Mon Sep 17 00:00:00 2001
+From: Jerome Soumagne <jerome.soumagne@intel.com>
+Date: Thu, 4 May 2023 15:48:18 -0500
+Subject: [PATCH 1/2] NA OFI: remove use of FI_SOURCE for CXI provider
+
+---
+ src/na/na_ofi.c | 8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/src/na/na_ofi.c b/src/na/na_ofi.c
+index ff8a3ef8..178ca4c9 100644
+--- a/src/na/na_ofi.c
++++ b/src/na/na_ofi.c
+@@ -219,7 +219,7 @@
+       FI_ADDR_CXI,                                                             \
+       FI_PROGRESS_MANUAL,                                                      \
+       FI_PROTO_CXI,                                                            \
+-      FI_SOURCE | FI_MULTI_RECV,                                               \
++      FI_MULTI_RECV,                                                           \
+       NA_OFI_WAIT_FD | NA_OFI_LOC_INFO | NA_OFI_HMEM                           \
+     )                                                                          \
+     X(NA_OFI_PROV_MAX, "", "", 0, 0, 0, 0, 0, 0)
+@@ -7954,7 +7954,11 @@ na_ofi_progress(
+ 
+         for (i = 0; i < actual_count; i++) {
+             ret = na_ofi_cq_process_event(na_ofi_class, &cq_events[i],
+-                src_addrs[i], src_err_addr_ptr, src_err_addrlen);
++                (na_ofi_prov_extra_caps[na_ofi_class->fabric->prov_type] &
++                    FI_SOURCE)
++                    ? src_addrs[i]
++                    : FI_ADDR_NOTAVAIL,
++                src_err_addr_ptr, src_err_addrlen);
+             NA_CHECK_SUBSYS_NA_ERROR(
+                 poll, error, ret, "Could not process event");
+         }
+-- 
+2.40.0
+
