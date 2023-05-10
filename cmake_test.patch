@@ -1,0 +1,32 @@
+From 2565300055105e01c1b89c934d5524e3c525a6a9 Mon Sep 17 00:00:00 2001
+From: Jerome Soumagne <jerome.soumagne@intel.com>
+Date: Wed, 10 May 2023 16:54:45 -0500
+Subject: [PATCH] test
+
+---
+ src/na/CMakeLists.txt | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/src/na/CMakeLists.txt b/src/na/CMakeLists.txt
+index 72fcc09c..fe686ecb 100644
+--- a/src/na/CMakeLists.txt
++++ b/src/na/CMakeLists.txt
+@@ -259,6 +259,7 @@ if(NA_USE_UCX)
+   if(CMAKE_BUILD_TYPE MATCHES "Tsan")
+     unset(CMAKE_REQUIRED_FLAGS)
+   endif()
++  message(FATAL_ERROR "stop here")
+   if(NA_USE_DYNAMIC_PLUGINS)
+     set(NA_DYNAMIC_PLUGINS
+       ${NA_DYNAMIC_PLUGINS}
+@@ -561,4 +562,5 @@ if(NOT WIN32)
+       ${NA_INSTALL_LIB_DIR}/pkgconfig
+   )
+ 
+-endif()
+\ No newline at end of file
++endif()
++
+-- 
+2.40.0
+

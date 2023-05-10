@@ -1,13 +1,13 @@
 Name: mercury
 Version: 2.3.0~rc5
-Release: 6%{?dist}
+Release: 7%{?dist}
 
 # dl_version is version with ~ removed
 %{lua:
     rpm.define("dl_version " .. string.gsub(rpm.expand("%{version}"), "~", ""))
 }
 
-%global ucx 0
+%global ucx 1
 
 # do not build perf binaries on CentOS7 due to CMake PIE issues
 # see: https://cmake.org/cmake/help/latest/policy/CMP0083.html#policy:CMP0083
@@ -31,6 +31,7 @@ Patch0:   na_ucx_src_port.patch
 Patch1:   mercury_init_defaults.patch
 Patch2:   no_fi_source.patch
 Patch3:   no_wait_fd.patch
+Patch4:   cmake_test.patch
 
 BuildRequires:  libfabric-devel >= 1.14.0
 BuildRequires:  cmake
@@ -104,7 +105,6 @@ Mercury plugin to support the UCX transport.
         -DNA_USE_SM:BOOL=ON                               \
         -DNA_USE_UCX:BOOL=%{ucx}                          \
         -DNA_USE_OFI:BOOL=ON
-%cmake_build
 
 %install
 %cmake_install
@@ -144,6 +144,9 @@ Mercury plugin to support the UCX transport.
 %{_libdir}/cmake/
 
 %changelog
+* Wed May 10 2023 Jerome Soumagne <jerome.soumagne@intel.com> - 2.3.0~rc5-7
+- CMake test
+
 * Thu May  4 2023 Jerome Soumagne <jerome.soumagne@intel.com> - 2.3.0~rc5-6
 - No FI SOURCE
 
