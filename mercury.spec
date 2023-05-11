@@ -1,6 +1,6 @@
 Name: mercury
 Version: 2.3.0~rc5
-Release: 1%{?dist}
+Release: 2%{?dist}
 
 # dl_version is version with ~ removed
 %{lua:
@@ -38,6 +38,7 @@ URL:      http://mercury-hpc.github.io/
 Source0:  https://github.com/mercury-hpc/%{name}/releases/download/v%{dl_version}/%{name}-%{dl_version}.tar.bz2
 # https://github.com/mercury-hpc/mercury/commit/8007bd7d7467100983948f76c9232a3eb7d281c6.patch
 Patch0:   na_ucx_src_port.patch
+Patch1:   lock_trigget_progress.patch
 
 BuildRequires:  libfabric-devel >= 1.14.0
 BuildRequires:  cmake
@@ -152,6 +153,9 @@ Mercury plugin to support the UCX transport.
 %{_libdir}/cmake/
 
 %changelog
+* Thu May 11 2023 Mohamad Chaarawi <mohamad.chaarawi@intel.com> - 2.3.0~rc5-2
+- Add a patch to do more locking on the progress and trigger side.
+
 * Tue Apr 25 2023 Jerome Soumagne <jerome.soumagne@intel.com> - 2.3.0~rc5-1
 - Update to 2.3.0rc5
 - Remove na_ucx.c patch and add temporary na_ucx_src_port.patch
