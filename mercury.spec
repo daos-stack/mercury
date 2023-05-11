@@ -152,6 +152,9 @@ Mercury plugin to support the UCX transport.
 %{_libdir}/cmake/
 
 %changelog
+* Thu May 11 2022 Joseph Moore <joseph.moore@intel.com> - 2.3.0~rc5-2
+- Update to UCX 1.14.
+
 * Tue Apr 25 2023 Jerome Soumagne <jerome.soumagne@intel.com> - 2.3.0~rc5-1
 - Update to 2.3.0rc5
 - Remove na_ucx.c patch and add temporary na_ucx_src_port.patch
