@@ -38,7 +38,7 @@ URL:      http://mercury-hpc.github.io/
 Source0:  https://github.com/mercury-hpc/%{name}/releases/download/v%{dl_version}/%{name}-%{dl_version}.tar.bz2
 # https://github.com/mercury-hpc/mercury/commit/8007bd7d7467100983948f76c9232a3eb7d281c6.patch
 Patch0:   na_ucx_src_port.patch
-Patch1:   lock_trigget_progress.patch
+Patch1:   lock_trigger_progress.patch
 
 BuildRequires:  libfabric-devel >= 1.14.0
 BuildRequires:  cmake

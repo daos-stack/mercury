@@ -1,7 +1,16 @@
 diff --git a/src/mercury_core.c b/src/mercury_core.c
-index 9c42b78..74b6787 100644
+index 9c42b78..ca55fbd 100644
 --- a/src/mercury_core.c
 +++ b/src/mercury_core.c
+@@ -938,7 +938,7 @@ hg_core_trigger_lookup_entry(struct hg_core_op_id *hg_core_op_id);
+  * Trigger callback from HG core handle.
+  */
+ static hg_return_t
+-hg_core_trigger_entry(struct hg_core_private_handle *hg_core_handle);
++hg_core_trigger_entry(struct hg_core_private_handle *hg_core_handle, hg_thread_mutex_t *mutex);
+ 
+ /**
+  * Cancel handle.
 @@ -4913,6 +4913,7 @@ hg_core_progress(
          hg_time_get_current_ms(&now);
      deadline = hg_time_add(now, hg_time_from_ms(timeout_ms));
@@ -92,24 +101,97 @@ index 9c42b78..74b6787 100644
                  if (ret == HG_TIMEOUT)
                      break;
  
-@@ -5255,6 +5252,7 @@ hg_core_trigger(struct hg_core_private_context *context,
-         HG_CHECK_SUBSYS_ERROR(poll, hg_completion_entry == NULL, done, ret,
-             HG_FAULT, "NULL completion entry");
- 
-+	hg_thread_mutex_unlock(&backfill_queue->mutex);
+@@ -5258,21 +5255,25 @@ hg_core_trigger(struct hg_core_private_context *context,
          /* Trigger entry */
          switch (hg_completion_entry->op_type) {
              case HG_ADDR:
-@@ -5281,10 +5279,10 @@ hg_core_trigger(struct hg_core_private_context *context,
++                hg_thread_mutex_unlock(&backfill_queue->mutex);
+                 ret = hg_core_trigger_lookup_entry(
+                     hg_completion_entry->op_id.hg_core_op_id);
++		hg_thread_mutex_lock(&backfill_queue->mutex);
+                 HG_CHECK_SUBSYS_HG_ERROR(
+                     poll, done, ret, "Could not trigger addr completion entry");
+                 break;
+             case HG_RPC:
+                 ret = hg_core_trigger_entry(
+                     (struct hg_core_private_handle *)
+-                        hg_completion_entry->op_id.hg_core_handle);
++                        hg_completion_entry->op_id.hg_core_handle, &backfill_queue->mutex);
+                 HG_CHECK_SUBSYS_HG_ERROR(
+                     poll, done, ret, "Could not trigger RPC completion entry");
+                 break;
+             case HG_BULK:
++                hg_thread_mutex_unlock(&backfill_queue->mutex);
+                 ret = hg_bulk_trigger_entry(
+                     hg_completion_entry->op_id.hg_bulk_op_id);
++		hg_thread_mutex_lock(&backfill_queue->mutex);
+                 HG_CHECK_SUBSYS_HG_ERROR(
+                     poll, done, ret, "Could not trigger bulk completion entry");
+                 break;
+@@ -5281,14 +5282,13 @@ hg_core_trigger(struct hg_core_private_context *context,
                      "Invalid type of completion entry (%d)",
                      (int) hg_completion_entry->op_type);
          }
 -
-+	hg_thread_mutex_lock(&backfill_queue->mutex);
          count++;
      }
 -
-+    hg_thread_mutex_unlock(&backfill_queue->mutex);
      if (actual_count_p)
          *actual_count_p = count;
  
+ done:
++    hg_thread_mutex_unlock(&backfill_queue->mutex);
+     return ret;
+ }
+ 
+@@ -5317,7 +5317,7 @@ hg_core_trigger_lookup_entry(struct hg_core_op_id *hg_core_op_id)
+ 
+ /*---------------------------------------------------------------------------*/
+ static hg_return_t
+-hg_core_trigger_entry(struct hg_core_private_handle *hg_core_handle)
++hg_core_trigger_entry(struct hg_core_private_handle *hg_core_handle, hg_thread_mutex_t *mutex)
+ {
+     hg_return_t ret;
+ 
+@@ -5343,6 +5343,7 @@ hg_core_trigger_entry(struct hg_core_private_handle *hg_core_handle)
+             hg_atomic_set32(&hg_core_handle->no_response_done, ref_count);
+ 
+         /* Run RPC callback */
++	hg_thread_mutex_unlock(mutex);
+         ret = hg_core_process(hg_core_handle);
+         if (ret != HG_SUCCESS && !hg_core_handle->no_response) {
+             hg_size_t header_size =
+@@ -5352,15 +5353,20 @@ hg_core_trigger_entry(struct hg_core_private_handle *hg_core_handle)
+             /* Respond in case of error */
+             ret = hg_core_respond(
+                 hg_core_handle, NULL, NULL, 0, header_size, ret);
++	    if (ret != HG_SUCCESS)
++		    hg_thread_mutex_lock(mutex);
+             HG_CHECK_SUBSYS_HG_ERROR(rpc, done, ret, "Could not respond");
+         }
+ 
+         /* No response callback */
+         if (hg_core_handle->no_response && !hg_core_handle->is_self) {
+             ret = hg_core_handle->ops.no_respond(hg_core_handle);
++	    if (ret != HG_SUCCESS)
++		    hg_thread_mutex_lock(mutex);
+             HG_CHECK_SUBSYS_HG_ERROR(
+                 rpc, done, ret, "Could not complete handle");
+         }
++	hg_thread_mutex_lock(mutex);
+     } else {
+         hg_core_cb_t hg_cb = NULL;
+         struct hg_core_cb_info hg_core_cb_info;
+@@ -5402,8 +5408,11 @@ hg_core_trigger_entry(struct hg_core_private_handle *hg_core_handle)
+         /* Execute user callback.
+          * NB. The handle cannot be destroyed before the callback execution
+          * as the user may carry the handle in the callback. */
+-        if (hg_cb)
++        if (hg_cb) {
++            hg_thread_mutex_unlock(mutex);
+             hg_cb(&hg_core_cb_info);
++            hg_thread_mutex_lock(mutex);
++	}
+     }
+ 
+ done:
