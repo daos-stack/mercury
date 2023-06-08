@@ -85,7 +85,7 @@ Mercury plugin to support the UCX transport.
 # see: https://cmake.org/cmake/help/latest/policy/CMP0083.html#policy:CMP0083
 %cmake  -DCMAKE_IN_SOURCE_BUILD:BOOL=ON                   \
         -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo          \
-%if 0%{?rhel} < 8
+%if 0%{?rhel} && 0%{?rhel} < 8
         -DCMAKE_EXE_LINKER_FLAGS:STRING="-pie ${LDFLAGS}" \
 %endif
         -DCMAKE_SKIP_INSTALL_RPATH:BOOL=ON                \
