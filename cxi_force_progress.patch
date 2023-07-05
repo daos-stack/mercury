@@ -1,0 +1,26 @@
+From 9041b4eed712303a8ea9afc42e264e38dc58dee9 Mon Sep 17 00:00:00 2001
+From: Jerome Soumagne <jerome.soumagne@intel.com>
+Date: Wed, 5 Jul 2023 18:22:52 -0500
+Subject: [PATCH] NA OFI: force progress when reading from CQ
+
+---
+ src/na/na_ofi.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/src/na/na_ofi.c b/src/na/na_ofi.c
+index 01758ccd..b699cade 100644
+--- a/src/na/na_ofi.c
++++ b/src/na/na_ofi.c
+@@ -5657,6 +5657,9 @@ na_ofi_cq_read(struct fid_cq *cq, struct fi_cq_tagged_entry cq_events[],
+     if (rc > 0) { /* events available */
+         *actual_count = (size_t) rc;
+         *err_avail = false;
++
++        /* TEST: Force provider to progress */
++        (void) fi_cq_read(cq, NULL, 0);
+     } else if (rc == -FI_EAGAIN) { /* no event available */
+         *actual_count = 0;
+         *err_avail = false;
+-- 
+2.40.1
+
