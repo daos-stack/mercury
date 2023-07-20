@@ -29,6 +29,7 @@ Group:    Development/Libraries
 URL:      http://mercury-hpc.github.io/
 Source0:  https://github.com/mercury-hpc/%{name}/releases/download/v%{dl_version}/%{name}-%{dl_version}.tar.bz2
 Patch0:   cxi_force_progress.patch
+Patch1:   bump_cq_depth.patch
 
 BuildRequires:  libfabric-devel >= 1.14.0
 BuildRequires:  cmake
@@ -146,8 +147,9 @@ Mercury plugin to support the UCX transport.
 %{_libdir}/cmake/
 
 %changelog
-* Wed Jul  5 2023 Jerome Soumagne <jerome.soumagne@intel.com> - 2.3.0-3
+* Thu Jul 20 2023 Jerome Soumagne <jerome.soumagne@intel.com> - 2.3.0-3
 - Test patch to force progress with CXI
+- Test patch to bump default CQ size
 
 * Thu Jun 22 2023 Brian J. Murrell <brian.murrell@intel> - 2.3.0-2
 - Rebuild for EL9

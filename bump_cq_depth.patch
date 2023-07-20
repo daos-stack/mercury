@@ -1,0 +1,35 @@
+From 39a25a9765384f7055241c908d55bdd079c3104e Mon Sep 17 00:00:00 2001
+From: Jerome Soumagne <jerome.soumagne@intel.com>
+Date: Thu, 20 Jul 2023 17:19:30 -0500
+Subject: [PATCH] NA OFI: bump default CQ size to 128k
+
+---
+ src/na/na_ofi.c | 12 ++++++++++--
+ 1 file changed, 10 insertions(+), 2 deletions(-)
+
+diff --git a/src/na/na_ofi.c b/src/na/na_ofi.c
+index 01758ccd..48924dc5 100644
+--- a/src/na/na_ofi.c
++++ b/src/na/na_ofi.c
+@@ -301,8 +301,16 @@ static unsigned long const na_ofi_prov_flags[] = {NA_OFI_PROV_TYPES};
+ 
+ /* Number of CQ event provided for fi_cq_read() */
+ #define NA_OFI_CQ_EVENT_NUM (16)
+-/* CQ depth (the socket provider's default value is 256 */
+-#define NA_OFI_CQ_DEPTH (8192)
++/**
++ * CQ default provider sizes:
++ * - tcp: 1024
++ * - verbs: 1024
++ * - opx: 8192
++ * - socket: 256
++ * - gni: 256
++ * Override default to 128k
++ */
++#define NA_OFI_CQ_DEPTH (131072)
+ /* CQ max err data size (fix to 48 to work around bug in gni provider code) */
+ #define NA_OFI_CQ_MAX_ERR_DATA_SIZE (48)
+ 
+-- 
+2.40.1
+

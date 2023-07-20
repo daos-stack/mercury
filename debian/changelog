@@ -1,8 +1,9 @@
 mercury (2.3.0-3) unstable; urgency=medium
   [ Jerome Soumagne ]
   * Test patch to force progress with CXI
+  * Test patch to bump default CQ size
 
- -- Jerome Soumagne <jerome.soumagne@intel.com>  Wed,  5 Jul 2023 11:00:00 -0600
+ -- Jerome Soumagne <jerome.soumagne@intel.com>  Thu, 20 Jul 2023 11:00:00 -0600
 
 mercury (2.3.0-1) unstable; urgency=medium
   [ Jerome Soumagne ]
