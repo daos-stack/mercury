@@ -1,6 +1,6 @@
 Name: mercury
-Version: 2.3.0~rc5
-Release: 2%{?dist}
+Version: 2.3.0
+Release: 3%{?dist}
 
 # dl_version is version with ~ removed
 %{lua:
@@ -19,14 +19,6 @@ Release: 2%{?dist}
 %global ucx 1
 %endif
 
-# do not build perf binaries on CentOS7 due to CMake PIE issues
-# see: https://cmake.org/cmake/help/latest/policy/CMP0083.html#policy:CMP0083
-%if 0%{?rhel} >= 8 || 0%{?suse_version} >= 1315
-%global __build_perf 1
-%else
-%global __build_perf 0
-%endif
-
 # necessary for old cmake environments (e.g., CentOS7)
 %{?!cmake_build:%global cmake_build %__cmake --build %{_vpath_srcdir}}
 %{?!cmake_install:%global cmake_install %make_install}
@@ -36,9 +28,8 @@ License:  BSD
 Group:    Development/Libraries
 URL:      http://mercury-hpc.github.io/
 Source0:  https://github.com/mercury-hpc/%{name}/releases/download/v%{dl_version}/%{name}-%{dl_version}.tar.bz2
-# https://github.com/mercury-hpc/mercury/commit/8007bd7d7467100983948f76c9232a3eb7d281c6.patch
 Patch0:   na_ucx_src_port.patch
-Patch1:   lock_trigger_progress.patch
+Patch0:   lock_trigger_progress.patch
 
 BuildRequires:  libfabric-devel >= 1.14.0
 BuildRequires:  cmake
@@ -92,13 +83,18 @@ Mercury plugin to support the UCX transport.
 %autosetup -p1 -n mercury-%dl_version
 
 %build
+# Pass -pie linker flags manually on CentOS7 due to CMake PIE issues
+# see: https://cmake.org/cmake/help/latest/policy/CMP0083.html#policy:CMP0083
 %cmake  -DCMAKE_IN_SOURCE_BUILD:BOOL=ON                   \
         -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo          \
+%if 0%{?rhel} && 0%{?rhel} < 8
+        -DCMAKE_EXE_LINKER_FLAGS:STRING="-pie ${LDFLAGS}" \
+%endif
         -DCMAKE_SKIP_INSTALL_RPATH:BOOL=ON                \
         -DBUILD_DOCUMENTATION:BOOL=OFF                    \
         -DBUILD_EXAMPLES:BOOL=OFF                         \
-        -DBUILD_TESTING:BOOL=%{__build_perf}              \
-        -DBUILD_TESTING_PERF:BOOL=%{__build_perf}         \
+        -DBUILD_TESTING:BOOL=ON                           \
+        -DBUILD_TESTING_PERF:BOOL=ON                      \
         -DBUILD_TESTING_UNIT:BOOL=OFF                     \
         -DMERCURY_ENABLE_DEBUG:BOOL=ON                    \
         -DMERCURY_INSTALL_DATA_DIR:PATH=%{_libdir}        \
@@ -130,10 +126,8 @@ Mercury plugin to support the UCX transport.
 %files
 %license LICENSE.txt
 %doc Documentation/CHANGES.md
-%if %{__build_perf}
 %{_bindir}/hg_*
 %{_bindir}/na_*
-%endif
 %{_libdir}/*.so.*
 %{_libdir}/mercury/libna_plugin_ofi.so
 
@@ -153,8 +147,17 @@ Mercury plugin to support the UCX transport.
 %{_libdir}/cmake/
 
 %changelog
-* Thu May 11 2023 Mohamad Chaarawi <mohamad.chaarawi@intel.com> - 2.3.0~rc5-2
+* Thu Aug 24 2023 Mohamad Chaarawi <mohamad.chaarawi@intel.com> - 2.3.0-3
 - Add a patch to do more locking on the progress and trigger side.
+
+* Thu Jun 22 2023 Brian J. Murrell <brian.murrell@intel> - 2.3.0-2
+- Rebuild for EL9
+
+* Wed Jun  7 2023 Jerome Soumagne <jerome.soumagne@intel.com> - 2.3.0-1
+- Update to 2.3.0
+- Add hg_info tool
+- Fix pie flags on CentOS7
+- Remove na_ucx_src_port.patch and old patches
 
 * Tue Apr 25 2023 Jerome Soumagne <jerome.soumagne@intel.com> - 2.3.0~rc5-1
 - Update to 2.3.0rc5
