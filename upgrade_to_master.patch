@@ -1,0 +1,1409 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 51dd14e..e7bf154 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -98,8 +98,6 @@ if(APPLE AND NOT MERCURY_EXTERNALLY_CONFIGURED)
+     set(CMAKE_INSTALL_PREFIX ${CACHED_CMAKE_INSTALL_PREFIX} CACHE PATH "Install prefix")
+   endif()
+   unset(MACOSX_APP_INSTALL_PREFIX CACHE)
+-
+-  set(CMAKE_INSTALL_NAME_DIR "@rpath")
+   mark_as_advanced(
+     CMAKE_OSX_ARCHITECTURES
+     CMAKE_OSX_DEPLOYMENT_TARGET
+@@ -195,6 +193,7 @@ function(mercury_set_exe_options exetarget var_prefix)
+   set_target_properties(${exetarget} PROPERTIES
+       POSITION_INDEPENDENT_CODE  ${BUILD_SHARED_LIBS}
+       INSTALL_RPATH              ${${var_prefix}_INSTALL_LIB_DIR}
++      INSTALL_NAME_DIR           ${${var_prefix}_INSTALL_LIB_DIR}
+   )
+ endfunction()
+ 
+@@ -238,6 +237,7 @@ function(mercury_set_lib_options libtarget libname libtype var_prefix)
+     set_target_properties(${libtarget}
+         PROPERTIES
+         INSTALL_RPATH              ${${var_prefix}_INSTALL_LIB_DIR}
++        INSTALL_NAME_DIR           ${${var_prefix}_INSTALL_LIB_DIR}
+         VERSION                    ${${var_prefix}_VERSION}.${${var_prefix}_VERSION_PATCH}
+         SOVERSION                  ${${var_prefix}_VERSION_MAJOR}
+     )
+diff --git a/Testing/common/na_test.c b/Testing/common/na_test.c
+index aa409e9..aa22c63 100644
+--- a/Testing/common/na_test.c
++++ b/Testing/common/na_test.c
+@@ -54,6 +54,9 @@ static void
+ na_test_parse_options(
+     int argc, char *argv[], struct na_test_info *na_test_info);
+ 
++static size_t
++na_test_parse_size(const char *str);
++
+ #ifdef HG_TEST_HAS_PARALLEL
+ static na_return_t
+ na_test_mpi_init(struct na_test_info *na_test_info);
+@@ -180,16 +183,19 @@ na_test_parse_options(int argc, char *argv[], struct na_test_info *na_test_info)
+                 na_test_info->max_contexts = (uint8_t) atoi(na_test_opt_arg_g);
+                 break;
+             case 'y': /* min buffer size */
+-                na_test_info->buf_size_min = (size_t) atol(na_test_opt_arg_g);
++                na_test_info->buf_size_min =
++                    na_test_parse_size(na_test_opt_arg_g);
+                 break;
+             case 'z': /* max buffer size */
+-                na_test_info->buf_size_max = (size_t) atol(na_test_opt_arg_g);
++                na_test_info->buf_size_max =
++                    na_test_parse_size(na_test_opt_arg_g);
+                 break;
+             case 'w': /* buffer count */
+                 na_test_info->buf_count = (size_t) atol(na_test_opt_arg_g);
+                 break;
+             case 'Z': /* msg size */
+-                na_test_info->max_msg_size = (size_t) atol(na_test_opt_arg_g);
++                na_test_info->max_msg_size =
++                    na_test_parse_size(na_test_opt_arg_g);
+                 break;
+             case 'R': /* force-register */
+                 na_test_info->force_register = true;
+@@ -220,6 +226,34 @@ na_test_parse_options(int argc, char *argv[], struct na_test_info *na_test_info)
+         na_test_info->loop = 1; /* Default */
+ }
+ 
++/*---------------------------------------------------------------------------*/
++static size_t
++na_test_parse_size(const char *str)
++{
++    size_t size;
++    char prefix;
++
++    if (sscanf(str, "%zu%c", &size, &prefix) == 2) {
++        switch (prefix) {
++            case 'k':
++                size *= 1024;
++                break;
++            case 'm':
++                size *= (1024 * 1024);
++                break;
++            case 'g':
++                size *= (1024 * 1024 * 1024);
++                break;
++            default:
++                break;
++        }
++        return size;
++    } else if (sscanf(str, "%zu", &size) == 1)
++        return size;
++    else
++        return 0;
++}
++
+ /*---------------------------------------------------------------------------*/
+ #ifdef HG_TEST_HAS_PARALLEL
+ static na_return_t
+diff --git a/Testing/perf/hg/hg_perf_server.c b/Testing/perf/hg/hg_perf_server.c
+index 7409960..4996414 100644
+--- a/Testing/perf/hg/hg_perf_server.c
++++ b/Testing/perf/hg/hg_perf_server.c
+@@ -5,6 +5,7 @@
+  * SPDX-License-Identifier: BSD-3-Clause
+  */
+ 
++#define _GNU_SOURCE
+ #include "mercury_perf.h"
+ 
+ #include "mercury_thread.h"
+@@ -24,6 +25,11 @@
+ static HG_THREAD_RETURN_TYPE
+ hg_perf_loop_thread(void *arg);
+ 
++#if !defined(_WIN32) && !defined(__APPLE__)
++static hg_return_t
++hg_perf_loop_thread_set_affinity(struct hg_perf_class_info *info);
++#endif
++
+ static hg_return_t
+ hg_perf_loop(struct hg_perf_class_info *info);
+ 
+@@ -38,6 +44,10 @@ hg_perf_loop_thread(void *arg)
+     hg_thread_ret_t tret = (hg_thread_ret_t) 0;
+     hg_return_t hg_ret;
+ 
++#if !defined(_WIN32) && !defined(__APPLE__)
++    (void) hg_perf_loop_thread_set_affinity((struct hg_perf_class_info *) arg);
++#endif
++
+     hg_ret = hg_perf_loop((struct hg_perf_class_info *) arg);
+     HG_TEST_CHECK_HG_ERROR(
+         done, hg_ret, "hg_perf_loop() failed (%s)", HG_Error_to_string(hg_ret));
+@@ -47,6 +57,57 @@ done:
+     return tret;
+ }
+ 
++/*---------------------------------------------------------------------------*/
++#if !defined(_WIN32) && !defined(__APPLE__)
++static hg_return_t
++hg_perf_loop_thread_set_affinity(struct hg_perf_class_info *info)
++{
++    hg_cpu_set_t orig_cpu_set, new_cpu_set;
++    size_t cpu, i = 0;
++    hg_return_t ret;
++    int rc;
++
++    /* Retrive affinity set on main process */
++    CPU_ZERO(&orig_cpu_set);
++    rc = hg_thread_getaffinity(hg_thread_self(), &orig_cpu_set);
++    HG_TEST_CHECK_ERROR(rc != HG_UTIL_SUCCESS, error, ret, HG_PROTOCOL_ERROR,
++        "Could not retrieve CPU affinity");
++    HG_TEST_CHECK_ERROR(info->class_id > CPU_COUNT(&orig_cpu_set), error, ret,
++        HG_PROTOCOL_ERROR,
++        "Could not set affinity, class ID (%d) > CPU count (%d)",
++        info->class_id, CPU_COUNT(&orig_cpu_set));
++
++    CPU_ZERO(&new_cpu_set);
++    for (cpu = 0; cpu < CPU_SETSIZE; cpu++) {
++        if (CPU_ISSET(cpu, &orig_cpu_set)) {
++            if (i == (size_t) info->class_id) {
++                CPU_SET(cpu, &new_cpu_set);
++                break;
++            }
++            i++;
++        }
++    }
++
++    rc = hg_thread_setaffinity(hg_thread_self(), &new_cpu_set);
++    HG_TEST_CHECK_ERROR(rc != HG_UTIL_SUCCESS, error, ret, HG_PROTOCOL_ERROR,
++        "Could not set CPU affinity");
++
++    CPU_ZERO(&orig_cpu_set);
++    rc = hg_thread_getaffinity(hg_thread_self(), &orig_cpu_set);
++    HG_TEST_CHECK_ERROR(rc != HG_UTIL_SUCCESS, error, ret, HG_PROTOCOL_ERROR,
++        "Could not retrieve CPU affinity");
++    for (cpu = 0; cpu < CPU_SETSIZE; cpu++)
++        if (CPU_ISSET(cpu, &orig_cpu_set))
++            HG_TEST_LOG_DEBUG(
++                "Class ID %d bound to CPU %zu\n", info->class_id, cpu);
++
++    return HG_SUCCESS;
++
++error:
++    return ret;
++}
++#endif
++
+ /*---------------------------------------------------------------------------*/
+ static hg_return_t
+ hg_perf_loop(struct hg_perf_class_info *info)
+diff --git a/Testing/script/gh_install_deps.sh b/Testing/script/gh_install_deps.sh
+index 96ddadf..493135a 100755
+--- a/Testing/script/gh_install_deps.sh
++++ b/Testing/script/gh_install_deps.sh
+@@ -10,7 +10,7 @@ if [[ $MERCURY_BUILD_CONFIGURATION == 'Debug' ]]; then
+   OFI_EXTRA_FLAGS="--enable-debug"
+ fi
+ #OFI_PR=
+-OFI_VERSION=1.18.0
++OFI_VERSION=1.19.0rc1
+ 
+ # UCX
+ if [[ $MERCURY_BUILD_CONFIGURATION == 'Tsan' ]]; then
+@@ -20,7 +20,7 @@ fi
+ if [[ $MERCURY_BUILD_CONFIGURATION == 'Debug' ]]; then
+   UCX_EXTRA_FLAGS="--enable-debug"
+ fi
+-UCX_VERSION=1.14.0
++UCX_VERSION=1.14.1
+ 
+ PREFIX=${RUNNER_TEMP}/${INSTALL_DIR}
+ 
+@@ -53,7 +53,7 @@ cd bmi-${BMI_VERSION} && ./prepare && ./configure --enable-shared --disable-stat
+ 
+ # OFI
+ if [ -z "$OFI_PR" ]; then
+-  cd $HOME && wget https://github.com/ofiwg/libfabric/releases/download/v${OFI_VERSION}/libfabric-${OFI_VERSION}.tar.bz2
++  cd $HOME && wget https://github.com/ofiwg/libfabric/releases/download/v1.19.0.rc1/libfabric-${OFI_VERSION}.tar.bz2
+   tar -xjf libfabric-${OFI_VERSION}.tar.bz2;
+   cd libfabric-${OFI_VERSION};
+   #wget https://github.com/ofiwg/libfabric/pull/6509.patch
+diff --git a/src/mercury_core.c b/src/mercury_core.c
+index 57d889f..230387a 100644
+--- a/src/mercury_core.c
++++ b/src/mercury_core.c
+@@ -67,6 +67,7 @@
+ /* Handle flags */
+ #define HG_CORE_HANDLE_LISTEN     (1 << 1) /* Listener handle */
+ #define HG_CORE_HANDLE_MULTI_RECV (1 << 2) /* Handle used for multi-recv */
++#define HG_CORE_HANDLE_USER       (1 << 3) /* User-created handle */
+ 
+ /* Op status bits */
+ #define HG_CORE_OP_COMPLETED  (1 << 0) /* Operation completed */
+@@ -252,17 +253,17 @@ struct hg_core_private_context {
+     struct hg_core_completion_queue backfill_queue; /* Backfill queue */
+     struct hg_atomic_queue *completion_queue;       /* Default queue */
+     struct hg_core_loopback_notify loopback_notify; /* Loopback notification */
+-    struct hg_core_handle_list created_list;        /* Created handle list */
++    struct hg_core_handle_list user_list;           /* Created handle list */
++    struct hg_core_handle_list internal_list;       /* Created handle list */
+     struct hg_core_handle_pool *handle_pool;        /* Pool of handles */
+ #ifdef NA_HAS_SM
+     struct hg_core_handle_pool *sm_handle_pool; /* Pool of SM handles */
+ #endif
+     struct hg_core_multi_recv_op multi_recv_ops[HG_CORE_MULTI_RECV_OP_MAX];
+-    struct hg_core_handle_create_cb handle_create_cb;     /* Handle create cb */
+-    struct hg_bulk_op_pool *hg_bulk_op_pool;              /* Pool of op IDs */
+-    struct hg_poll_set *poll_set;                         /* Poll set */
+-    struct hg_poll_event poll_events[HG_CORE_MAX_EVENTS]; /* Poll events */
+-    int na_event;                                         /* NA event */
++    struct hg_core_handle_create_cb handle_create_cb; /* Handle create cb */
++    struct hg_bulk_op_pool *hg_bulk_op_pool;          /* Pool of op IDs */
++    struct hg_poll_set *poll_set;                     /* Poll set */
++    int na_event;                                     /* NA event */
+ #ifdef NA_HAS_SM
+     int na_sm_event; /* NA SM event */
+ #endif
+@@ -319,6 +320,7 @@ struct hg_core_private_handle {
+     HG_LIST_ENTRY(hg_core_private_handle) pending;  /* Pending list entry */
+     struct hg_core_header in_header;                /* Input header */
+     struct hg_core_header out_header;               /* Output header */
++    struct hg_core_handle_list *created_list;       /* Created list */
+     na_class_t *na_class;                           /* NA class */
+     na_context_t *na_context;                       /* NA context */
+     na_addr_t *na_addr;                             /* NA addr */
+@@ -343,7 +345,7 @@ struct hg_core_private_handle {
+     hg_atomic_int32_t status;           /* Handle status */
+     hg_atomic_int32_t ret_status;       /* Handle return status */
+     hg_atomic_int32_t op_completed_count; /* Completed operation count */
+-    unsigned int
++    hg_atomic_int32_t
+         op_expected_count;     /* Expected operation count for completion */
+     hg_core_op_type_t op_type; /* Core operation type */
+     hg_return_t ret;           /* Return code associated to handle */
+@@ -473,7 +475,7 @@ hg_core_context_multi_recv_unpost(struct hg_core_private_context *context,
+  * Check list of handles not freed.
+  */
+ static hg_return_t
+-hg_core_context_check_handles(struct hg_core_private_context *context);
++hg_core_context_check_handle_list(struct hg_core_handle_list *handle_list);
+ 
+ /**
+  * Wail until handle lists are empty.
+@@ -676,7 +678,7 @@ hg_core_destroy(struct hg_core_private_handle *hg_core_handle);
+  * Allocate new handle.
+  */
+ static hg_return_t
+-hg_core_alloc(struct hg_core_private_context *context,
++hg_core_alloc(struct hg_core_private_context *context, hg_bool_t user,
+     struct hg_core_private_handle **hg_core_handle_p);
+ 
+ /**
+@@ -1400,7 +1402,8 @@ hg_core_context_create(struct hg_core_private_class *hg_core_class,
+     hg_bool_t backfill_queue_mutex_init = HG_FALSE,
+               backfill_queue_cond_init = HG_FALSE,
+               loopback_notify_mutex_init = HG_FALSE,
+-              created_list_lock_init = HG_FALSE;
++              user_list_lock_init = HG_FALSE,
++              internal_list_lock_init = HG_FALSE;
+ 
+     context = (struct hg_core_private_context *) calloc(1, sizeof(*context));
+     HG_CHECK_SUBSYS_ERROR(ctx, context == NULL, error, ret, HG_NOMEM,
+@@ -1434,11 +1437,17 @@ hg_core_context_create(struct hg_core_private_class *hg_core_class,
+         "hg_thread_mutex_init() failed");
+     loopback_notify_mutex_init = HG_TRUE;
+ 
+-    HG_LIST_INIT(&context->created_list.list);
+-    rc = hg_thread_spin_init(&context->created_list.lock);
++    HG_LIST_INIT(&context->user_list.list);
++    rc = hg_thread_spin_init(&context->user_list.lock);
+     HG_CHECK_SUBSYS_ERROR(ctx, rc != HG_UTIL_SUCCESS, error, ret, HG_NOMEM,
+         "hg_thread_spin_init() failed");
+-    created_list_lock_init = HG_TRUE;
++    user_list_lock_init = HG_TRUE;
++
++    HG_LIST_INIT(&context->internal_list.list);
++    rc = hg_thread_spin_init(&context->internal_list.lock);
++    HG_CHECK_SUBSYS_ERROR(ctx, rc != HG_UTIL_SUCCESS, error, ret, HG_NOMEM,
++        "hg_thread_spin_init() failed");
++    internal_list_lock_init = HG_TRUE;
+ 
+     /* Create NA context */
+     context->core_context.na_context =
+@@ -1579,8 +1588,10 @@ error:
+             (void) hg_thread_cond_destroy(&backfill_queue->cond);
+         if (loopback_notify_mutex_init)
+             (void) hg_thread_mutex_destroy(&context->loopback_notify.mutex);
+-        if (created_list_lock_init)
+-            (void) hg_thread_spin_destroy(&context->created_list.lock);
++        if (user_list_lock_init)
++            (void) hg_thread_spin_destroy(&context->user_list.lock);
++        if (internal_list_lock_init)
++            (void) hg_thread_spin_destroy(&context->internal_list.lock);
+         hg_atomic_queue_free(context->completion_queue);
+         free(context);
+     }
+@@ -1608,18 +1619,28 @@ hg_core_context_destroy(struct hg_core_private_context *context)
+         /* Unpost requests */
+         ret = hg_core_context_unpost(context, HG_CORE_CLEANUP_TIMEOUT);
+         HG_CHECK_SUBSYS_HG_ERROR(ctx, error, ret, "Could not unpost requests");
+-    } else {
+-        /* Wait on created list (user created handles) */
+-        ret = hg_core_context_list_wait(
+-            context, &context->created_list, HG_CORE_CLEANUP_TIMEOUT);
+-        HG_CHECK_SUBSYS_HG_ERROR(
+-            ctx, error, ret, "Could not wait on handle list");
+     }
+ 
++    /* Wait on created list (user created handles) */
++    ret = hg_core_context_list_wait(
++        context, &context->user_list, HG_CORE_CLEANUP_TIMEOUT);
++    HG_CHECK_SUBSYS_HG_ERROR(ctx, error, ret, "Could not wait on handle list");
++
+     /* Number of handles for that context should be 0 */
+-    ret = hg_core_context_check_handles(context);
+-    HG_CHECK_SUBSYS_HG_ERROR(
+-        ctx, error, ret, "Handles for that context are still in use");
++    if (hg_atomic_get32(&context->n_handles) > 0) {
++        HG_LOG_SUBSYS_ERROR(ctx,
++            "HG core handles must be freed before destroying context (%" PRId32
++            " remaining)",
++            hg_atomic_get32(&context->n_handles));
++
++        ret = hg_core_context_check_handle_list(&context->user_list);
++        HG_CHECK_SUBSYS_HG_ERROR(
++            ctx, error, ret, "User-created handles are still in use");
++
++        ret = hg_core_context_check_handle_list(&context->internal_list);
++        HG_CHECK_SUBSYS_HG_ERROR(
++            ctx, error, ret, "Internal handles are still in use");
++    }
+ 
+     /* Check that backfill completion queue is empty now */
+     backfill_queue = &context->backfill_queue;
+@@ -1708,7 +1729,8 @@ hg_core_context_destroy(struct hg_core_private_context *context)
+     (void) hg_thread_mutex_destroy(&backfill_queue->mutex);
+     (void) hg_thread_cond_destroy(&backfill_queue->cond);
+     (void) hg_thread_mutex_destroy(&context->loopback_notify.mutex);
+-    (void) hg_thread_spin_destroy(&context->created_list.lock);
++    (void) hg_thread_spin_destroy(&context->user_list.lock);
++    (void) hg_thread_spin_destroy(&context->internal_list.lock);
+ 
+     hg_atomic_queue_free(context->completion_queue);
+     free(context);
+@@ -1843,9 +1865,9 @@ hg_core_context_unpost(
+     }
+ #endif
+ 
+-    /* Wait on created list */
++    /* Wait on internal list */
+     ret =
+-        hg_core_context_list_wait(context, &context->created_list, timeout_ms);
++        hg_core_context_list_wait(context, &context->internal_list, timeout_ms);
+     HG_CHECK_SUBSYS_HG_ERROR(ctx, error, ret, "Could not wait on handle list");
+ 
+     if (hg_core_class->init_info.multi_recv)
+@@ -2012,35 +2034,30 @@ error:
+ 
+ /*---------------------------------------------------------------------------*/
+ static hg_return_t
+-hg_core_context_check_handles(struct hg_core_private_context *context)
++hg_core_context_check_handle_list(struct hg_core_handle_list *handle_list)
+ {
+-    int32_t n_handles;
++    struct hg_core_private_handle *hg_core_handle = NULL;
++    hg_return_t ret;
+ 
+-    /* Number of handles for that context should be 0 */
+-    n_handles = hg_atomic_get32(&context->n_handles);
+-    if (n_handles != 0) {
+-        struct hg_core_private_handle *hg_core_handle = NULL;
++    hg_thread_spin_lock(&handle_list->lock);
+ 
+-        HG_LOG_SUBSYS_ERROR(ctx,
+-            "HG core handles must be freed before destroying context (%d "
+-            "remaining)",
+-            n_handles);
+-
+-        hg_thread_spin_lock(&context->created_list.lock);
+-        HG_LIST_FOREACH (hg_core_handle, &context->created_list.list, created) {
+-            /* TODO ideally we'd want the upper layer to print that */
+-            if (hg_core_handle->core_handle.data)
+-                HG_LOG_SUBSYS_ERROR(ctx, "Handle (%p) was not destroyed",
+-                    hg_core_handle->core_handle.data);
+-            HG_LOG_SUBSYS_DEBUG(ctx, "Core handle (%p) was not destroyed",
+-                (void *) hg_core_handle);
+-        }
+-        hg_thread_spin_unlock(&context->created_list.lock);
++    if (HG_LIST_IS_EMPTY(&handle_list->list))
++        HG_GOTO_DONE(unlock, ret, HG_SUCCESS);
+ 
+-        return HG_BUSY;
++    HG_LIST_FOREACH (hg_core_handle, &handle_list->list, created) {
++        /* TODO ideally we'd want the upper layer to print that */
++        if (hg_core_handle->core_handle.data)
++            HG_LOG_SUBSYS_ERROR(ctx, "Handle (%p) was not destroyed",
++                hg_core_handle->core_handle.data);
++        HG_LOG_SUBSYS_DEBUG(
++            ctx, "Core handle (%p) was not destroyed", (void *) hg_core_handle);
+     }
++    ret = HG_BUSY;
+ 
+-    return HG_SUCCESS;
++unlock:
++    hg_thread_spin_unlock(&handle_list->lock);
++
++    return ret;
+ }
+ 
+ /*---------------------------------------------------------------------------*/
+@@ -3147,7 +3164,7 @@ hg_core_create(struct hg_core_private_context *context, na_class_t *na_class,
+     hg_return_t ret;
+ 
+     /* Allocate new handle */
+-    ret = hg_core_alloc(context, &hg_core_handle);
++    ret = hg_core_alloc(context, flags & HG_CORE_HANDLE_USER, &hg_core_handle);
+     HG_CHECK_SUBSYS_HG_ERROR(rpc, error, ret, "Could not allocate handle");
+ 
+     /* Alloc/init NA resources */
+@@ -3259,7 +3276,7 @@ error:
+ 
+ /*---------------------------------------------------------------------------*/
+ static hg_return_t
+-hg_core_alloc(struct hg_core_private_context *context,
++hg_core_alloc(struct hg_core_private_context *context, hg_bool_t user,
+     struct hg_core_private_handle **hg_core_handle_p)
+ {
+     hg_checksum_level_t checksum_level =
+@@ -3285,9 +3302,12 @@ hg_core_alloc(struct hg_core_private_context *context,
+     hg_core_handle->ret = HG_SUCCESS;
+ 
+     /* Add handle to handle list so that we can track it */
+-    hg_thread_spin_lock(&context->created_list.lock);
+-    HG_LIST_INSERT_HEAD(&context->created_list.list, hg_core_handle, created);
+-    hg_thread_spin_unlock(&context->created_list.lock);
++    hg_core_handle->created_list =
++        (user) ? &context->user_list : &context->internal_list;
++    hg_thread_spin_lock(&hg_core_handle->created_list->lock);
++    HG_LIST_INSERT_HEAD(
++        &hg_core_handle->created_list->list, hg_core_handle, created);
++    hg_thread_spin_unlock(&hg_core_handle->created_list->lock);
+ 
+     /* Completed by default */
+     hg_atomic_init32(&hg_core_handle->status, HG_CORE_OP_COMPLETED);
+@@ -3320,25 +3340,22 @@ error:
+ static void
+ hg_core_free(struct hg_core_private_handle *hg_core_handle)
+ {
+-    struct hg_core_private_context *context;
+-
+     /* Remove reference to HG addr */
+     hg_core_addr_free(
+         (struct hg_core_private_addr *) hg_core_handle->core_handle.info.addr);
+ 
+     /* Remove handle from list */
+-    context = HG_CORE_HANDLE_CONTEXT(hg_core_handle);
+-    hg_thread_spin_lock(&context->created_list.lock);
++    hg_thread_spin_lock(&hg_core_handle->created_list->lock);
+     HG_LIST_REMOVE(hg_core_handle, created);
+-    hg_thread_spin_unlock(&context->created_list.lock);
++    hg_thread_spin_unlock(&hg_core_handle->created_list->lock);
+ 
+     hg_core_header_request_finalize(&hg_core_handle->in_header);
+     hg_core_header_response_finalize(&hg_core_handle->out_header);
+ 
+-    free(hg_core_handle);
+-
+     /* Decrement N handles from HG context */
+-    hg_atomic_decr32(&context->n_handles);
++    hg_atomic_decr32(&HG_CORE_HANDLE_CONTEXT(hg_core_handle)->n_handles);
++
++    free(hg_core_handle);
+ }
+ 
+ /*---------------------------------------------------------------------------*/
+@@ -3412,7 +3429,8 @@ hg_core_alloc_na(struct hg_core_private_handle *hg_core_handle,
+     HG_CHECK_SUBSYS_ERROR(rpc, hg_core_handle->na_ack_op_id == NULL, error, ret,
+         HG_NA_ERROR, "Could not create NA op ID");
+ 
+-    hg_core_handle->op_expected_count = 1; /* Default (no response) */
++    hg_atomic_init32(
++        &hg_core_handle->op_expected_count, 1); /* Default (no response) */
+     hg_atomic_init32(&hg_core_handle->op_completed_count, 0);
+ 
+     return HG_SUCCESS;
+@@ -3489,7 +3507,8 @@ hg_core_reset(struct hg_core_private_handle *hg_core_handle)
+     hg_core_handle->ret = HG_SUCCESS;
+     hg_core_handle->in_buf_used = 0;
+     hg_core_handle->out_buf_used = 0;
+-    hg_core_handle->op_expected_count = 1; /* Default (no response) */
++    hg_atomic_init32(
++        &hg_core_handle->op_expected_count, 1); /* Default (no response) */
+     hg_atomic_init32(&hg_core_handle->op_completed_count, 0);
+     hg_core_handle->no_response = HG_FALSE;
+ 
+@@ -3757,8 +3776,9 @@ hg_core_forward(struct hg_core_private_handle *hg_core_handle,
+         (void *) hg_core_handle, ref_count);
+ 
+     /* Reset op counts */
+-    hg_core_handle->op_expected_count = 1; /* Default (no response) */
+-    hg_atomic_init32(&hg_core_handle->op_completed_count, 0);
++    hg_atomic_set32(
++        &hg_core_handle->op_expected_count, 1); /* Default (no response) */
++    hg_atomic_set32(&hg_core_handle->op_completed_count, 0);
+ 
+     /* Reset handle ret */
+     hg_core_handle->ret = HG_SUCCESS;
+@@ -3866,7 +3886,7 @@ hg_core_forward_na(struct hg_core_private_handle *hg_core_handle)
+             NA_Error_to_string(na_ret));
+ 
+         /* Increment number of expected operations */
+-        hg_core_handle->op_expected_count++;
++        hg_atomic_incr32(&hg_core_handle->op_expected_count);
+     }
+ 
+     /* Mark handle as posted */
+@@ -3896,7 +3916,7 @@ error_send:
+         /* No recv was posted */
+         return ret;
+     } else {
+-        hg_core_handle->op_expected_count--;
++        hg_atomic_decr32(&hg_core_handle->op_expected_count);
+ 
+         /* Keep error for return status */
+         hg_atomic_set32(&hg_core_handle->ret_status, (int32_t) ret);
+@@ -3992,7 +4012,7 @@ hg_core_respond_self(struct hg_core_private_handle *hg_core_handle)
+     hg_core_handle->op_type = HG_CORE_RESPOND_SELF;
+ 
+     /* Increment number of expected operations */
+-    hg_core_handle->op_expected_count++;
++    hg_atomic_incr32(&hg_core_handle->op_expected_count);
+ 
+     /* Complete and add to completion queue */
+     hg_core_complete_op(hg_core_handle);
+@@ -4008,7 +4028,7 @@ hg_core_no_respond_self(struct hg_core_private_handle *hg_core_handle)
+     hg_core_handle->op_type = HG_CORE_FORWARD_SELF;
+ 
+     /* Increment number of expected operations */
+-    hg_core_handle->op_expected_count++;
++    hg_atomic_incr32(&hg_core_handle->op_expected_count);
+ 
+     /* Complete and add to completion queue */
+     hg_core_complete_op(hg_core_handle);
+@@ -4025,7 +4045,7 @@ hg_core_respond_na(struct hg_core_private_handle *hg_core_handle)
+     hg_bool_t ack_recv_posted = HG_FALSE;
+ 
+     /* Increment number of expected operations */
+-    hg_core_handle->op_expected_count++;
++    hg_atomic_incr32(&hg_core_handle->op_expected_count);
+ 
+     /* Set operation type for trigger */
+     hg_core_handle->op_type = HG_CORE_RESPOND;
+@@ -4054,7 +4074,7 @@ hg_core_respond_na(struct hg_core_private_handle *hg_core_handle)
+         }
+ 
+         /* Increment number of expected operations */
+-        hg_core_handle->op_expected_count++;
++        hg_atomic_incr32(&hg_core_handle->op_expected_count);
+ 
+         /* Pre-post recv (ack) if more data is expected */
+         na_ret = NA_Msg_recv_expected(hg_core_handle->na_class,
+@@ -4091,7 +4111,7 @@ error:
+     hg_atomic_or32(&hg_core_handle->status, HG_CORE_OP_ERRORED);
+ 
+     if (ack_recv_posted) {
+-        hg_core_handle->op_expected_count--;
++        hg_atomic_decr32(&hg_core_handle->op_expected_count);
+ 
+         /* Keep error for return status */
+         hg_atomic_set32(&hg_core_handle->ret_status, (int32_t) ret);
+@@ -4125,7 +4145,7 @@ hg_core_no_respond_na(struct hg_core_private_handle *hg_core_handle)
+     hg_core_handle->op_type = HG_CORE_NO_RESPOND;
+ 
+     /* Increment number of expected operations */
+-    hg_core_handle->op_expected_count++;
++    hg_atomic_incr32(&hg_core_handle->op_expected_count);
+ 
+     hg_core_complete_op(hg_core_handle);
+ 
+@@ -4420,7 +4440,7 @@ hg_core_process_input(struct hg_core_private_handle *hg_core_handle)
+             (void *) hg_core_handle);
+ 
+         /* Increment number of expected operations */
+-        hg_core_handle->op_expected_count++;
++        hg_atomic_incr32(&hg_core_handle->op_expected_count);
+ 
+ #if defined(HG_HAS_DEBUG) && !defined(_WIN32)
+         /* Increment counter */
+@@ -4560,7 +4580,7 @@ hg_core_process_output(struct hg_core_private_handle *hg_core_handle,
+             (void *) hg_core_handle);
+ 
+         /* Increment number of expected operations */
+-        hg_core_handle->op_expected_count++;
++        hg_atomic_incr32(&hg_core_handle->op_expected_count);
+ 
+ #if defined(HG_HAS_DEBUG) && !defined(_WIN32)
+         /* Increment counter */
+@@ -4699,7 +4719,7 @@ hg_core_self_cb(const struct hg_core_cb_info *callback_info)
+     hg_return_t ret;
+ 
+     /* Increment number of expected operations */
+-    hg_core_handle->op_expected_count++;
++    hg_atomic_incr32(&hg_core_handle->op_expected_count);
+ 
+     /* First execute response callback */
+     if (hg_core_handle->response_callback) {
+@@ -4818,19 +4838,20 @@ error:
+ static HG_INLINE void
+ hg_core_complete_op(struct hg_core_private_handle *hg_core_handle)
+ {
+-    unsigned int op_completed_count =
+-        (unsigned int) hg_atomic_incr32(&hg_core_handle->op_completed_count);
++    int32_t op_completed_count =
++                hg_atomic_incr32(&hg_core_handle->op_completed_count),
++            op_expected_count =
++                hg_atomic_get32(&hg_core_handle->op_expected_count);
+ 
+-    HG_LOG_SUBSYS_DEBUG(rpc, "Completed %u/%u NA operations for handle (%p)",
+-        op_completed_count, hg_core_handle->op_expected_count,
+-        (void *) hg_core_handle);
++    HG_LOG_SUBSYS_DEBUG(rpc,
++        "Completed %" PRId32 "/%" PRId32 " NA operations for handle (%p)",
++        op_completed_count, op_expected_count, (void *) hg_core_handle);
+ 
+     /* Add handle to completion queue when expected operations have
+      * completed */
+-    if (op_completed_count == hg_core_handle->op_expected_count) {
++    if (op_completed_count == op_expected_count)
+         hg_core_complete(hg_core_handle,
+             (hg_return_t) hg_atomic_get32(&hg_core_handle->ret_status));
+-    }
+ }
+ 
+ /*---------------------------------------------------------------------------*/
+@@ -4993,13 +5014,14 @@ static hg_return_t
+ hg_core_poll_wait(struct hg_core_private_context *context,
+     unsigned int timeout_ms, hg_bool_t *progressed_p)
+ {
++    struct hg_poll_event poll_events[HG_CORE_MAX_EVENTS]; /* Poll events */
+     unsigned int i, nevents;
+     hg_return_t ret;
+     hg_bool_t progressed = HG_FALSE;
+     int rc;
+ 
+     rc = hg_poll_wait(context->poll_set, timeout_ms, HG_CORE_MAX_EVENTS,
+-        context->poll_events, &nevents);
++        poll_events, &nevents);
+ 
+     /* No longer need to notify when we're not waiting */
+     hg_atomic_set32(&context->loopback_notify.must_notify, 0);
+@@ -5007,7 +5029,7 @@ hg_core_poll_wait(struct hg_core_private_context *context,
+     HG_CHECK_SUBSYS_ERROR(poll, rc != HG_UTIL_SUCCESS, error, ret,
+         HG_PROTOCOL_ERROR, "hg_poll_wait() failed");
+ 
+-    if (nevents == 1 && (context->poll_events[0].events & HG_POLLINTR)) {
++    if (nevents == 1 && (poll_events[0].events & HG_POLLINTR)) {
+         HG_LOG_SUBSYS_DEBUG(poll_loop, "Interrupted");
+         *progressed_p = HG_FALSE;
+         return HG_SUCCESS;
+@@ -5017,7 +5039,7 @@ hg_core_poll_wait(struct hg_core_private_context *context,
+     for (i = 0; i < nevents; i++) {
+         hg_bool_t progressed_event = HG_FALSE;
+ 
+-        switch (context->poll_events[i].data.u32) {
++        switch (poll_events[i].data.u32) {
+             case HG_CORE_POLL_LOOPBACK:
+                 HG_LOG_SUBSYS_DEBUG(poll_loop, "HG_CORE_POLL_LOOPBACK event");
+                 ret = hg_core_progress_loopback_notify(
+@@ -5050,7 +5072,7 @@ hg_core_poll_wait(struct hg_core_private_context *context,
+             default:
+                 HG_GOTO_SUBSYS_ERROR(poll, error, ret, HG_INVALID_ARG,
+                     "Invalid type of poll event (%d)",
+-                    (int) context->poll_events[i].data.u32);
++                    (int) poll_events[i].data.u32);
+         }
+         progressed |= progressed_event;
+     }
+@@ -5214,9 +5236,12 @@ hg_core_trigger(struct hg_core_private_context *context,
+             /* Check backfill queue */
+             if (hg_atomic_get32(&backfill_queue->count) > 0) {
+                 hg_thread_mutex_lock(&backfill_queue->mutex);
+-                hg_completion_entry = HG_QUEUE_FIRST(&backfill_queue->queue);
+-                HG_QUEUE_POP_HEAD(&backfill_queue->queue, entry);
+-                hg_atomic_decr32(&backfill_queue->count);
++                if (hg_atomic_get32(&backfill_queue->count) > 0) {
++                    hg_completion_entry =
++                        HG_QUEUE_FIRST(&backfill_queue->queue);
++                    HG_QUEUE_POP_HEAD(&backfill_queue->queue, entry);
++                    hg_atomic_decr32(&backfill_queue->count);
++                }
+                 hg_thread_mutex_unlock(&backfill_queue->mutex);
+                 if (hg_completion_entry == NULL)
+                     continue; /* Give another change to grab it */
+@@ -5719,8 +5744,8 @@ HG_Core_context_unpost(hg_core_context_t *context)
+     HG_CHECK_SUBSYS_ERROR(ctx, context == NULL, error, ret, HG_INVALID_ARG,
+         "NULL HG core context");
+ 
+-    ret = hg_core_context_unpost(
+-        (struct hg_core_private_context *) context, HG_CORE_CLEANUP_TIMEOUT);
++    ret = hg_core_context_unpost((struct hg_core_private_context *) context,
++        HG_CORE_CLEANUP_TIMEOUT * 10);
+     HG_CHECK_SUBSYS_HG_ERROR(ctx, error, ret, "Could not unpost context");
+ 
+     HG_LOG_SUBSYS_DEBUG(
+@@ -6174,7 +6199,7 @@ HG_Core_create(hg_core_context_t *context, hg_core_addr_t addr, hg_id_t id,
+ 
+     /* Create new handle */
+     ret = hg_core_create((struct hg_core_private_context *) context, na_class,
+-        na_context, 0, &hg_core_handle);
++        na_context, HG_CORE_HANDLE_USER, &hg_core_handle);
+     HG_CHECK_SUBSYS_HG_ERROR(
+         rpc, error, ret, "Could not create HG core handle");
+ 
+diff --git a/src/na/na.c b/src/na/na.c
+index 94743ea..748e95f 100644
+--- a/src/na/na.c
++++ b/src/na/na.c
+@@ -1887,9 +1887,11 @@ NA_Trigger(
+ 
+             if (hg_atomic_get32(&backfill_queue->count)) {
+                 hg_thread_spin_lock(&backfill_queue->lock);
+-                completion_data_p = HG_QUEUE_FIRST(&backfill_queue->queue);
+-                HG_QUEUE_POP_HEAD(&backfill_queue->queue, entry);
+-                hg_atomic_decr32(&backfill_queue->count);
++                if (hg_atomic_get32(&backfill_queue->count)) {
++                    completion_data_p = HG_QUEUE_FIRST(&backfill_queue->queue);
++                    HG_QUEUE_POP_HEAD(&backfill_queue->queue, entry);
++                    hg_atomic_decr32(&backfill_queue->count);
++                }
+                 hg_thread_spin_unlock(&backfill_queue->lock);
+                 if (completion_data_p == NULL)
+                     continue; /* Give another chance to grab it */
+diff --git a/src/na/na_ofi.c b/src/na/na_ofi.c
+index 5cc7761..bb6ba9f 100644
+--- a/src/na/na_ofi.c
++++ b/src/na/na_ofi.c
+@@ -267,6 +267,9 @@ static unsigned long const na_ofi_prov_flags[] = {NA_OFI_PROV_TYPES};
+ /* Don't enable for now to prevent backward compatibility issues */
+ // #define NA_OFI_ADDR_OPT
+ 
++/* OPX */
++#define NA_OFI_OPX_NODE_PREFIX "ib"
++
+ /* IB */
+ #ifndef AF_IB
+ #    define AF_IB 27
+@@ -279,6 +282,9 @@ static unsigned long const na_ofi_prov_flags[] = {NA_OFI_PROV_TYPES};
+ #define NA_OFI_GNI_AV_STR_ADDR_VERSION (1)
+ #define NA_OFI_GNI_UDREG_REG_LIMIT     (2048)
+ 
++/* CXI */
++#define NA_OFI_CXI_NODE_PREFIX "cxi"
++
+ /* Address pool (enabled by default, comment out to disable) */
+ #define NA_OFI_HAS_ADDR_POOL
+ #define NA_OFI_ADDR_POOL_COUNT (64)
+@@ -301,8 +307,16 @@ static unsigned long const na_ofi_prov_flags[] = {NA_OFI_PROV_TYPES};
+ 
+ /* Number of CQ event provided for fi_cq_read() */
+ #define NA_OFI_CQ_EVENT_NUM (16)
+-/* CQ depth (the socket provider's default value is 256 */
+-#define NA_OFI_CQ_DEPTH (8192)
++/**
++ * CQ default provider sizes:
++ * - tcp: 1024
++ * - verbs: 1024
++ * - opx: 8192
++ * - socket: 256
++ * - gni: 256
++ * Override default to 128k
++ */
++#define NA_OFI_CQ_DEPTH (131072)
+ /* CQ max err data size (fix to 48 to work around bug in gni provider code) */
+ #define NA_OFI_CQ_MAX_ERR_DATA_SIZE (48)
+ 
+@@ -329,6 +343,16 @@ static unsigned long const na_ofi_prov_flags[] = {NA_OFI_PROV_TYPES};
+ #define NA_OFI_CLASS(x)   ((struct na_ofi_class *) ((x)->plugin_class))
+ #define NA_OFI_CONTEXT(x) ((struct na_ofi_context *) ((x)->plugin_context))
+ 
++/* Init info */
++#define NA_OFI_INFO_INITIALIZER                                                \
++    ((struct na_ofi_info){.addr_format = FI_FORMAT_UNSPEC,                     \
++        .thread_mode = FI_THREAD_UNSPEC,                                       \
++        .node = NULL,                                                          \
++        .service = NULL,                                                       \
++        .src_addr = NULL,                                                      \
++        .src_addrlen = 0,                                                      \
++        .use_hmem = false})
++
+ /* Get IOV */
+ #define NA_OFI_IOV(iov, iovcnt) (iovcnt > NA_OFI_IOV_STATIC_MAX) ? iov.d : iov.s
+ 
+@@ -1014,22 +1038,20 @@ na_ofi_free_hostname_info(
+  * Parse IPv4 info.
+  */
+ static na_return_t
+-na_ofi_parse_sin_info(const char *hostname_info, char **resolve_name_p,
+-    uint16_t *port_p, char **domain_name_p);
++na_ofi_parse_sin_info(
++    const char *str, char **domain_name_p, char **hostname_p, uint16_t *port_p);
+ 
+ /**
+  * Parse CXI info.
+  */
+ static na_return_t
+-na_ofi_parse_cxi_info(
+-    const char *hostname_info, char **node_p, char **service_p);
++na_ofi_parse_cxi_info(const char *str, char **node_p, char **service_p);
+ 
+ /**
+- * Parse OPX address.
++ * Parse OPX info.
+  */
+ static na_return_t
+-na_ofi_parse_opx_info(
+-    const uint8_t hfi_interface, int port, struct na_ofi_opx_addr **addr);
++na_ofi_parse_opx_info(const char *str, struct na_ofi_opx_addr **src_addr_p);
+ 
+ /**
+  * Allocate new OFI class.
+@@ -2191,9 +2213,8 @@ na_ofi_str_to_sin(const char *str, struct sockaddr_in *sin_addr)
+     sin_addr->sin_family = AF_INET;
+     if (sscanf(str, "%*[^:]://:%" SCNu16, &sin_addr->sin_port) == 1) {
+         NA_LOG_SUBSYS_DEBUG(addr, "port=%" PRIu16, sin_addr->sin_port);
+-    } else if ((sscanf(str, "%*[^:]://%16[^:]:%" SCNu16, ip,
+-                    &sin_addr->sin_port) == 2) ||
+-               (sscanf(str, "%*[^:]://%16[^:/]", ip) == 1)) {
++    } else if (sscanf(str, "%*[^:]://%16[^:]:%" SCNu16, ip,
++                   &sin_addr->sin_port) > 0) {
+         int rc;
+ 
+         ip[sizeof(ip) - 1] = '\0';
+@@ -2229,9 +2250,8 @@ na_ofi_str_to_sin6(const char *str, struct sockaddr_in6 *sin6_addr)
+     sin6_addr->sin6_family = AF_INET6;
+     if (sscanf(str, "%*[^:]://:%" SCNu16, &sin6_addr->sin6_port) == 1) {
+         NA_LOG_SUBSYS_DEBUG(addr, "port=%" PRIu16, sin6_addr->sin6_port);
+-    } else if ((sscanf(str, "%*[^:]://[%64[^]]]:%" SCNu16, ip,
+-                    &sin6_addr->sin6_port) == 2) ||
+-               (sscanf(str, "%*[^:]://[%64[^]]", ip) == 1)) {
++    } else if (sscanf(str, "%*[^:]://[%64[^]]]:%" SCNu16, ip,
++                   &sin6_addr->sin6_port) > 0) {
+         int rc;
+ 
+         ip[sizeof(ip) - 1] = '\0';
+@@ -3138,13 +3158,6 @@ na_ofi_getinfo(enum na_ofi_prov_type prov_type, const struct na_ofi_info *info,
+     NA_CHECK_SUBSYS_ERROR(
+         cls, hints == NULL, out, ret, NA_NOMEM, "fi_allocinfo() failed");
+ 
+-    /* Protocol name is provider name, filter out providers within libfabric */
+-    if (prov_type != NA_OFI_PROV_NULL) {
+-        hints->fabric_attr->prov_name = strdup(na_ofi_prov_name[prov_type]);
+-        NA_CHECK_SUBSYS_ERROR(cls, hints->fabric_attr->prov_name == NULL,
+-            cleanup, ret, NA_NOMEM, "Could not duplicate name");
+-    }
+-
+     /**
+      * FI_ASYNC_IOV mode indicates  that  the  application  must  provide  the
+      * buffering needed for the IO vectors. When set, an application must not
+@@ -3152,28 +3165,13 @@ na_ofi_getinfo(enum na_ofi_prov_type prov_type, const struct na_ofi_info *info,
+      * descriptor array, until the associated operation has completed.
+      */
+     hints->mode = FI_ASYNC_IOV; // FI_RX_CQ_DATA
+-    if (na_ofi_prov_flags[prov_type] & NA_OFI_CONTEXT2)
+-        hints->mode |= FI_CONTEXT2;
+-    else
+-        hints->mode |= FI_CONTEXT;
+ 
+     /* ep_type: reliable datagram (connection-less) */
+     hints->ep_attr->type = FI_EP_RDM;
+ 
+-    /* set endpoint protocol */
+-    if (prov_type != NA_OFI_PROV_NULL)
+-        NA_CHECK_SUBSYS_ERROR(cls,
+-            na_ofi_prov_ep_proto[prov_type] <= FI_PROTO_UNSPEC, cleanup, ret,
+-            NA_PROTONOSUPPORT, "Unsupported endpoint protocol (%d)",
+-            na_ofi_prov_ep_proto[prov_type]);
+-    hints->ep_attr->protocol = (uint32_t) na_ofi_prov_ep_proto[prov_type];
+-
+     /* caps: capabilities required for all providers */
+     hints->caps = FI_MSG | FI_TAGGED | FI_RMA | FI_DIRECTED_RECV;
+ 
+-    /* add any additional caps that are particular to this provider */
+-    hints->caps |= na_ofi_prov_extra_caps[prov_type];
+-
+     /**
+      * msg_order: guarantee that messages with same tag are ordered.
+      * (FI_ORDER_SAS - Send after send. If set, message send operations,
+@@ -3200,13 +3198,37 @@ na_ofi_getinfo(enum na_ofi_prov_type prov_type, const struct na_ofi_info *info,
+     hints->domain_attr->mr_mode =
+         NA_OFI_MR_BASIC_REQ | FI_MR_LOCAL | FI_MR_ENDPOINT;
+ 
+-    /* set default progress mode */
+-    hints->domain_attr->control_progress = na_ofi_prov_progress[prov_type];
+-    hints->domain_attr->data_progress = na_ofi_prov_progress[prov_type];
++    if (prov_type != NA_OFI_PROV_NULL) {
++        /* Filter out providers within libfabric using provider name */
++        hints->fabric_attr->prov_name = strdup(na_ofi_prov_name[prov_type]);
++        NA_CHECK_SUBSYS_ERROR(cls, hints->fabric_attr->prov_name == NULL,
++            cleanup, ret, NA_NOMEM, "Could not duplicate name");
++
++        if (na_ofi_prov_flags[prov_type] & NA_OFI_CONTEXT2)
++            hints->mode |= FI_CONTEXT2;
++        else
++            hints->mode |= FI_CONTEXT;
++
++        /* set endpoint protocol */
++        NA_CHECK_SUBSYS_ERROR(cls,
++            na_ofi_prov_ep_proto[prov_type] <= FI_PROTO_UNSPEC, cleanup, ret,
++            NA_PROTONOSUPPORT, "Unsupported endpoint protocol (%d)",
++            na_ofi_prov_ep_proto[prov_type]);
++        hints->ep_attr->protocol = (uint32_t) na_ofi_prov_ep_proto[prov_type];
++
++        /* add any additional caps that are particular to this provider */
++        hints->caps |= na_ofi_prov_extra_caps[prov_type];
++
++        /* set default progress mode */
++        hints->domain_attr->control_progress = na_ofi_prov_progress[prov_type];
++        hints->domain_attr->data_progress = na_ofi_prov_progress[prov_type];
++    }
+ 
+     if (info) {
+         /* Use addr format if not FI_FORMAT_UNSPEC */
+-        NA_CHECK_SUBSYS_ERROR(cls, info->addr_format <= FI_FORMAT_UNSPEC,
++        NA_CHECK_SUBSYS_ERROR(cls,
++            (prov_type != NA_OFI_PROV_NULL) &&
++                (info->addr_format <= FI_FORMAT_UNSPEC),
+             cleanup, ret, NA_PROTONOSUPPORT, "Unsupported address format (%d)",
+             info->addr_format);
+         hints->addr_format = (uint32_t) info->addr_format;
+@@ -3380,13 +3402,9 @@ na_ofi_parse_hostname_info(enum na_ofi_prov_type prov_type,
+ #endif
+ 
+             ret = na_ofi_parse_sin_info(
+-                hostname_info, &hostname, &port, &domain_name);
++                hostname_info, &domain_name, &hostname, &port);
+             NA_CHECK_SUBSYS_NA_ERROR(cls, out, ret, "Could not parse sin info");
+ 
+-            NA_LOG_SUBSYS_DEBUG(cls,
+-                "Found hostname: %s, port %" PRIu16 ", domain %s", hostname,
+-                port, domain_name);
+-
+             if (hostname == NULL) {
+                 char host[NA_OFI_MAX_URI_LEN];
+                 int rc;
+@@ -3461,52 +3479,12 @@ na_ofi_parse_hostname_info(enum na_ofi_prov_type prov_type,
+             }
+             break;
+ 
+-        case FI_ADDR_OPX: {
+-            char *resolve_name = NULL;
+-            unsigned int hfi_interface = 0;
+-            int port = -1;
+-
+-            hostname = strdup(hostname_info);
+-            NA_CHECK_SUBSYS_ERROR(cls, hostname == NULL, out, ret, NA_NOMEM,
+-                "strdup() of hostname failed");
+-
+-            /* Extract hostname */
+-            if (strstr(hostname, ":")) {
+-                char *hostname_str = NULL;
+-
+-                strtok_r(hostname, ":", &hostname_str);
+-                hfi_interface = (unsigned int) strtoul(hostname_str, NULL, 10);
+-
+-                strtok_r(hostname_str, ":", &hostname_str);
+-                if (strlen(hostname_str)) {
+-                    port = (int) strtoul(hostname_str, NULL, 10);
+-                }
+-            }
+-
+-            /* Extract domain (if specified) */
+-            if (strstr(hostname, "/")) {
+-                strtok_r(hostname, "/", &resolve_name);
+-            } else {
+-                resolve_name = hostname;
+-            }
+-
+-            /* Get hostname/port info if available */
+-            if (resolve_name) {
+-                struct na_ofi_opx_addr *na_ofi_opx_addr;
+-                /* Port is HFI interface card ID */
+-                ret = na_ofi_parse_opx_info(
+-                    (uint8_t) hfi_interface, port, &na_ofi_opx_addr);
+-                NA_CHECK_SUBSYS_ERROR(cls,
+-                    ret != NA_SUCCESS || !na_ofi_opx_addr, out, ret,
+-                    NA_ADDRNOTAVAIL,
+-                    "Could not convert device port to NA OPX address");
+-
+-                /* Pass src addr information to avoid name resolution */
+-                *src_addr_p = (void *) na_ofi_opx_addr;
+-                *src_addrlen_p = sizeof(*na_ofi_opx_addr);
+-            }
++        case FI_ADDR_OPX:
++            ret = na_ofi_parse_opx_info(
++                hostname_info, (struct na_ofi_opx_addr **) src_addr_p);
++            NA_CHECK_SUBSYS_NA_ERROR(cls, out, ret, "Could not parse opx info");
++            *src_addrlen_p = sizeof(struct na_ofi_opx_addr);
+             break;
+-        }
+         default:
+             NA_LOG_SUBSYS_ERROR(
+                 fatal, "Unsupported address format: %d", addr_format);
+@@ -3533,55 +3511,55 @@ na_ofi_free_hostname_info(
+ 
+ /*---------------------------------------------------------------------------*/
+ static na_return_t
+-na_ofi_parse_sin_info(const char *hostname_info, char **resolve_name_p,
+-    uint16_t *port_p, char **domain_name_p)
++na_ofi_parse_sin_info(
++    const char *str, char **domain_name_p, char **hostname_p, uint16_t *port_p)
+ {
+-    char domain_name[65];
+-    char *hostname = NULL;
++    char hostname[65], domain_name[65];
+     na_return_t ret;
+ 
+-    if (sscanf(hostname_info, ":%" SCNu16, port_p) == 1) {
+-        NA_LOG_SUBSYS_DEBUG(cls, "port=%" PRIu16, *port_p);
++    if (sscanf(str, ":%" SCNu16, port_p) == 1) {
+         /* Only port, e.g. ":12345" */
+-    } else if (sscanf(hostname_info, "%64[^/]/:%" SCNu16, domain_name,
+-                   port_p) == 2) {
++        NA_LOG_SUBSYS_DEBUG(cls, "port: %" PRIu16, *port_p);
++    } else if (sscanf(str, "%64[^/]/:%" SCNu16, domain_name, port_p) == 2) {
++        /* Domain and port, e.g. "lo/:12345" */
+         NA_LOG_SUBSYS_DEBUG(
+             cls, "domain: %s, port: %" PRIu16, domain_name, *port_p);
+-        /* Domain and port, e.g. "lo/:12345" */
++
+         *domain_name_p = strdup(domain_name);
+         NA_CHECK_SUBSYS_ERROR(cls, *domain_name_p == NULL, error, ret, NA_NOMEM,
+-            "strdup() of host_name failed");
+-    } else {
+-        hostname = strdup(hostname_info);
+-        NA_CHECK_SUBSYS_ERROR(cls, hostname == NULL, error, ret, NA_NOMEM,
+-            "strdup() of host_name failed");
+-
+-        /* Domain, hostname and port, e.g. "lo/localhost:12345" */
+-        if (strchr(hostname, ':')) {
+-            char *port_str = NULL;
+-            strtok_r(hostname, ":", &port_str);
+-            *port_p = (uint16_t) strtoul(port_str, NULL, 10);
+-        }
++            "strdup() of domain_name failed");
+ 
+-        /* Extract domain */
+-        if (strchr(hostname, '/')) {
+-            char *host_str = NULL;
+-            strtok_r(hostname, "/", &host_str);
++        *hostname_p = strdup(domain_name);
++        NA_CHECK_SUBSYS_ERROR(cls, *hostname_p == NULL, error, ret, NA_NOMEM,
++            "strdup() of domain_name failed");
++    } else if (sscanf(str, "%64[^/]/%64[^/:]:%" SCNu16, domain_name, hostname,
++                   port_p) > 1) {
++        /* Domain / hostname and port, e.g. "lo/lo:12345" */
++        NA_LOG_SUBSYS_DEBUG(cls, "domain: %s, hostname: %s, port: %" PRIu16,
++            domain_name, hostname, *port_p);
+ 
+-            *domain_name_p = hostname;
+-            if (host_str && host_str[0] != '\0') {
+-                *resolve_name_p = strdup(host_str);
+-                NA_CHECK_SUBSYS_ERROR(cls, *resolve_name_p == NULL, error, ret,
+-                    NA_NOMEM, "strdup() of hostname failed");
+-            }
+-        } else
+-            *resolve_name_p = hostname;
+-    }
++        *domain_name_p = strdup(domain_name);
++        NA_CHECK_SUBSYS_ERROR(cls, *domain_name_p == NULL, error, ret, NA_NOMEM,
++            "strdup() of domain_name failed");
++
++        *hostname_p = strdup(hostname);
++        NA_CHECK_SUBSYS_ERROR(cls, *hostname_p == NULL, error, ret, NA_NOMEM,
++            "strdup() of hostname failed");
++    } else if (sscanf(str, "%64[^/:]:%" SCNu16, hostname, port_p) > 0) {
++        /* Hostname and port, e.g. "lo:12345" */
++        NA_LOG_SUBSYS_DEBUG(
++            cls, "hostname: %s, port: %" PRIu16, hostname, *port_p);
++
++        *hostname_p = strdup(hostname);
++        NA_CHECK_SUBSYS_ERROR(cls, *hostname_p == NULL, error, ret, NA_NOMEM,
++            "strdup() of hostname failed");
++    } else
++        NA_GOTO_SUBSYS_ERROR(cls, error, ret, NA_PROTONOSUPPORT,
++            "Malformed SIN info, format is: <domain>/<node>:<service>");
+ 
+     return NA_SUCCESS;
+ 
+ error:
+-    free(hostname);
+     return ret;
+ }
+ 
+@@ -3590,23 +3568,21 @@ static na_return_t
+ na_ofi_parse_cxi_info(
+     const char *hostname_info, char **node_p, char **service_p)
+ {
+-    char nic_name[5] = {"cxiX"}; /* cxi[0-9] */
++    char nic_name[5] = {NA_OFI_CXI_NODE_PREFIX "X"}; /* cxi[0-9] */
+     char pid_name[4];
+     uint16_t pid = 0; /* [0-510] */
+     uint16_t pid_mask = 0x1ff;
+     char *node = NULL;
+     na_return_t ret;
+ 
+-    /* Only port, e.g. ":510" */
+     if (sscanf(hostname_info, ":%" SCNu16, &pid) == 1) {
++        /* Only port, e.g. ":510" */
+         NA_CHECK_SUBSYS_ERROR(cls, pid >= pid_mask, error, ret,
+             NA_PROTONOSUPPORT, "CXI PID is %" PRIu16 ", must be [0-510]", pid);
+         NA_LOG_SUBSYS_DEBUG(cls, "PID: %" PRIu16, pid);
+-    }
+-    /* cxi[0-9]:port or cxi[0-9] */
+-    else if ((sscanf(hostname_info, "cxi%1[0-9]:%" SCNu16, &nic_name[3],
+-                  &pid) == 2) ||
+-             (sscanf(hostname_info, "cxi%1[0-9]", &nic_name[3]) == 1)) {
++    } else if (sscanf(hostname_info, NA_OFI_CXI_NODE_PREFIX "%1[0-9]:%" SCNu16,
++                   &nic_name[3], &pid) > 0) {
++        /* cxi[0-9]:port or cxi[0-9] */
+         NA_CHECK_SUBSYS_ERROR(cls, pid >= pid_mask, error, ret,
+             NA_PROTONOSUPPORT, "CXI PID is %" PRIu16 ", must be [0-510]", pid);
+         NA_LOG_SUBSYS_DEBUG(cls, "NIC name: %s, PID: %" PRIu16, nic_name, pid);
+@@ -3616,7 +3592,8 @@ na_ofi_parse_cxi_info(
+             "strdup() of nic_name failed");
+     } else
+         NA_GOTO_SUBSYS_ERROR(cls, error, ret, NA_PROTONOSUPPORT,
+-            "Malformed CXI info, format is: cxi[0-9]:[0-510]");
++            "Malformed CXI info, format is: " NA_OFI_CXI_NODE_PREFIX
++            "[0-9]:[0-510]");
+ 
+     /* Let the service string be NULL if PID is 0 to prevent CXI failure on
+      * endpoint open when same PID is used */
+@@ -3639,32 +3616,43 @@ error:
+ }
+ 
+ /*---------------------------------------------------------------------------*/
+-static NA_INLINE na_return_t
++static na_return_t
+ na_ofi_parse_opx_info(
+-    const uint8_t hfi_interface, int port, struct na_ofi_opx_addr **addr)
++    const char *hostname_info, struct na_ofi_opx_addr **src_addr_p)
+ {
+-    struct na_ofi_opx_addr *opx_addr;
++    struct na_ofi_opx_addr *src_addr = NULL;
++    uint8_t hfi_unit = 0;
++    na_ofi_opx_uid_t uid = 0;
+     na_return_t ret;
+ 
+-    opx_addr = calloc(1, sizeof(*opx_addr));
+-    NA_CHECK_SUBSYS_ERROR(addr, opx_addr == NULL, error, ret, NA_NOMEM,
+-        "Could not allocate na ofi opx address");
++    if (sscanf(hostname_info, ":%" SCNu32, &uid) == 1) {
++        /* Only port */
++        NA_LOG_SUBSYS_DEBUG(cls, ":%" PRIu32, uid);
++    } else if (sscanf(hostname_info,
++                   NA_OFI_OPX_NODE_PREFIX "%" SCNu8 ":%" SCNu32, &hfi_unit,
++                   &uid) > 0) {
++        /* Interface and port */
++        NA_LOG_SUBSYS_DEBUG(
++            cls, NA_OFI_OPX_NODE_PREFIX "%" PRIu8 ":%" PRIu32, hfi_unit, uid);
++    } else
++        NA_GOTO_SUBSYS_ERROR(cls, error, ret, NA_PROTONOSUPPORT,
++            "Malformed OPX info, format is: <" NA_OFI_OPX_NODE_PREFIX
++            "[0-9]>:<uid>");
+ 
+-    memset(opx_addr, 0, sizeof(*opx_addr));
+-    opx_addr->addr.hfi1_unit = hfi_interface;
++    src_addr = calloc(1, sizeof(*src_addr));
++    NA_CHECK_SUBSYS_ERROR(addr, src_addr == NULL, error, ret, NA_NOMEM,
++        "Could not allocate na ofi opx address");
+ 
+-    /* Need to use the uuid field of the address, because key
+-     * requires 4 bytes
+-     */
+-    opx_addr->addr.uid.fi = (na_ofi_opx_uid_t) port;
++    src_addr->addr.hfi1_unit = hfi_unit;
++    /* Need to use the uuid field of the address because key requires 4 bytes */
++    src_addr->addr.uid.fi = uid;
+ 
+-    *addr = opx_addr;
++    *src_addr_p = src_addr;
+ 
+     return NA_SUCCESS;
+ 
+ error:
+-    if (opx_addr)
+-        free(opx_addr);
++    free(src_addr);
+ 
+     return ret;
+ }
+@@ -6576,12 +6564,10 @@ na_ofi_get_protocol_info(
+ {
+     struct na_init_info na_init_info = NA_INIT_INFO_INITIALIZER;
+     struct fi_info *prov, *providers = NULL;
+-    struct na_ofi_verify_info verify_info = {.addr_format = 0,
+-        .domain_name = NULL,
+-        .loc_info = NULL, /* Loc info is ignored */
+-        .prov_type = NA_OFI_PROV_NULL};
++    struct na_ofi_info info = NA_OFI_INFO_INITIALIZER;
+     struct na_protocol_info *head = NULL, *prev = NULL;
+     unsigned NA_DEBUG_LOG_USED count = 0;
++    enum na_ofi_prov_type prov_type = NA_OFI_PROV_NULL;
+     na_return_t ret;
+ 
+     if (na_info != NULL) {
+@@ -6590,62 +6576,58 @@ na_ofi_get_protocol_info(
+             na_init_info = *na_info->na_init_info;
+ 
+         if (na_info->protocol_name != NULL) {
+-            verify_info.prov_type =
+-                na_ofi_prov_name_to_type(na_info->protocol_name);
+-            NA_CHECK_SUBSYS_ERROR(cls,
+-                verify_info.prov_type == NA_OFI_PROV_NULL, error, ret,
+-                NA_PROTONOSUPPORT, "Protocol \"%s\" not supported",
++            prov_type = na_ofi_prov_name_to_type(na_info->protocol_name);
++            NA_CHECK_SUBSYS_ERROR(cls, prov_type == NA_OFI_PROV_NULL, error,
++                ret, NA_PROTONOSUPPORT, "Protocol \"%s\" not supported",
+                 na_info->protocol_name);
+ 
+-            verify_info.addr_format = na_ofi_prov_addr_format(
+-                verify_info.prov_type, na_init_info.addr_format);
+-            NA_CHECK_SUBSYS_ERROR(cls,
+-                verify_info.addr_format <= FI_FORMAT_UNSPEC, error, ret,
+-                NA_PROTONOSUPPORT, "Unsupported address format");
++            info.addr_format =
++                na_ofi_prov_addr_format(prov_type, na_init_info.addr_format);
++            NA_CHECK_SUBSYS_ERROR(cls, info.addr_format <= FI_FORMAT_UNSPEC,
++                error, ret, NA_PROTONOSUPPORT, "Unsupported address format");
+         }
+     }
+ 
+-    ret = na_ofi_getinfo(verify_info.prov_type, NULL, &providers);
++    ret = na_ofi_getinfo(prov_type, &info, &providers);
+     NA_CHECK_SUBSYS_NA_ERROR(cls, error, ret, "Could not get provider info");
+ 
+     for (prov = providers; prov != NULL; prov = prov->next) {
+-        if (na_info == NULL || na_info->protocol_name == NULL) {
+-            verify_info.prov_type =
+-                na_ofi_prov_name_to_type(prov->fabric_attr->prov_name);
+-            if (verify_info.prov_type == NA_OFI_PROV_NULL)
+-                continue;
+-
+-            verify_info.addr_format = na_ofi_prov_addr_format(
+-                verify_info.prov_type, na_init_info.addr_format);
+-        }
++        struct na_ofi_verify_info verify_info = {
++            .loc_info = NULL,
++            .domain_name = NULL,
++            .addr_format = FI_FORMAT_UNSPEC,
++            .prov_type =
++                (prov_type != NA_OFI_PROV_NULL)
++                    ? prov_type
++                    : na_ofi_prov_name_to_type(prov->fabric_attr->prov_name),
++        };
++
++        if (verify_info.prov_type == NA_OFI_PROV_NULL)
++            continue; /* Unsupported provider */
++
++        verify_info.addr_format =
++            (info.addr_format != FI_FORMAT_UNSPEC)
++                ? info.addr_format
++                : na_ofi_prov_addr_format(
++                      verify_info.prov_type, na_init_info.addr_format);
+ 
+         if (na_ofi_match_provider(&verify_info, prov)) {
+             struct na_protocol_info *entry;
+ 
+-            /* Update last provider name if changed */
+-            if (prev == NULL ||
+-                strcmp(prev->protocol_name, prov->fabric_attr->prov_name)) {
+-                entry = na_protocol_info_alloc(NA_OFI_CLASS_NAME,
+-                    prov->fabric_attr->prov_name, prov->domain_attr->name);
+-                NA_CHECK_SUBSYS_ERROR(cls, entry == NULL, error, ret, NA_NOMEM,
+-                    "Could not allocate protocol info entry");
++            /* Do not keep duplicates generated by OFI */
++            for (entry = head; entry != NULL; entry = entry->next)
++                if (!strcmp(entry->device_name, prov->domain_attr->name) &&
++                    !strcmp(entry->protocol_name, prov->fabric_attr->prov_name))
++                    break;
++
++            if (entry != NULL)
++                continue; /* duplicate found */
++
++            entry = na_protocol_info_alloc(NA_OFI_CLASS_NAME,
++                prov->fabric_attr->prov_name, prov->domain_attr->name);
++            NA_CHECK_SUBSYS_ERROR(cls, entry == NULL, error, ret, NA_NOMEM,
++                "Could not allocate protocol info entry");
+ 
+-                prev = entry;
+-            } else {
+-                /* Do not keep duplicates */
+-                for (entry = head; entry != NULL && entry != prev->next;
+-                     entry = entry->next)
+-                    if (!strcmp(entry->device_name, prov->domain_attr->name))
+-                        break;
+-
+-                if (entry != prev->next)
+-                    continue;
+-
+-                entry = na_protocol_info_alloc(NA_OFI_CLASS_NAME,
+-                    prov->fabric_attr->prov_name, prov->domain_attr->name);
+-                NA_CHECK_SUBSYS_ERROR(cls, entry == NULL, error, ret, NA_NOMEM,
+-                    "Could not allocate protocol info entry");
+-            }
+             entry->next = head;
+             head = entry;
+ 
+@@ -6697,10 +6679,11 @@ na_ofi_check_protocol(const char *protocol_name)
+ 
+ /* Only the sockets provider is currently supported on macOS */
+ #ifdef __APPLE__
+-    NA_CHECK_SUBSYS_ERROR(fatal, type != NA_OFI_PROV_SOCKETS, out, accept,
+-        false,
+-        "Protocol \"tcp\" not supported on macOS, please use \"sockets\" "
+-        "instead");
++    NA_CHECK_SUBSYS_ERROR(fatal,
++        FI_VERSION_LT(runtime_version, FI_VERSION(1, 18)) &&
++            (type != NA_OFI_PROV_SOCKETS),
++        out, accept, false,
++        "\"sockets\" is the only supported provider on macOS");
+ #endif
+ 
+     /* Get info from provider (no node info) */
+@@ -6741,13 +6724,7 @@ na_ofi_initialize(
+     enum na_ofi_prov_type prov_type;
+     bool no_wait;
+     char *domain_name = NULL;
+-    struct na_ofi_info info = {.addr_format = FI_FORMAT_UNSPEC,
+-        .thread_mode = FI_THREAD_UNSPEC,
+-        .node = NULL,
+-        .service = NULL,
+-        .src_addr = NULL,
+-        .src_addrlen = 0,
+-        .use_hmem = false};
++    struct na_ofi_info info = NA_OFI_INFO_INITIALIZER;
+     struct na_loc_info *loc_info = NULL;
+     na_return_t ret;
+ #ifdef NA_OFI_HAS_MEM_POOL
+diff --git a/src/na/na_types.h b/src/na/na_types.h
+index 718a46b..4f08132 100644
+--- a/src/na/na_types.h
++++ b/src/na/na_types.h
+@@ -233,12 +233,14 @@ typedef void (*na_cb_t)(const struct na_cb_info *callback_info);
+ 
+ /* NA init info initializer */
+ #define NA_INIT_INFO_INITIALIZER                                               \
+-    (struct na_init_info)                                                      \
+-    {                                                                          \
+-        .ip_subnet = NULL, .auth_key = NULL, .max_unexpected_size = 0,         \
+-        .max_expected_size = 0, .progress_mode = 0,                            \
+-        .addr_format = NA_ADDR_UNSPEC, .max_contexts = 1, .thread_mode = 0,    \
+-        .request_mem_device = false                                            \
+-    }
++    ((struct na_init_info){.ip_subnet = NULL,                                  \
++        .auth_key = NULL,                                                      \
++        .max_unexpected_size = 0,                                              \
++        .max_expected_size = 0,                                                \
++        .progress_mode = 0,                                                    \
++        .addr_format = NA_ADDR_UNSPEC,                                         \
++        .max_contexts = 1,                                                     \
++        .thread_mode = 0,                                                      \
++        .request_mem_device = false})
+ 
+ #endif /* NA_TYPES_H */
