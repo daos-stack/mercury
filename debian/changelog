@@ -1,3 +1,10 @@
+mercury (2.3.1~rc1-2) unstable; urgency=medium
+  [ Jerome Soumagne ]
+  * Apply patch to disable FI_MR_PROV_KEY with cxi provider
+  * Apply patches from mercury upstream
+
+ -- Jerome Soumagne <jerome.soumagne@intel.com>  Fri, 15 Sep 2023 11:00:00 -0600
+
 mercury (2.3.1~rc1-1) unstable; urgency=medium
   [ Jerome Soumagne ]
   * Update to 2.3.1rc1

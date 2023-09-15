@@ -1,6 +1,6 @@
 Name: mercury
 Version: 2.3.1~rc1
-Release: 1%{?dist}
+Release: 2%{?dist}
 
 # dl_version is version with ~ removed
 %{lua:
@@ -28,6 +28,10 @@ License:  BSD
 Group:    Development/Libraries
 URL:      http://mercury-hpc.github.io/
 Source0:  https://github.com/mercury-hpc/%{name}/releases/download/v%{dl_version}/%{name}-%{dl_version}.tar.bz2
+Patch0:   https://github.com/mercury-hpc/mercury/commit/e30a629c82c9c3548d9401d0ff7e1c2ed45a3737.patch
+Patch1:   https://github.com/mercury-hpc/mercury/commit/61ef5a20bd39b89fc25558a19d43ddbb69c63da2.patch
+Patch2:   https://github.com/mercury-hpc/mercury/commit/9f7e7b0079443f0e32ab06d8c77a840b18e2b442.patch
+Patch3:   https://patch-diff.githubusercontent.com/raw/mercury-hpc/mercury/pull/711.patch
 
 BuildRequires:  libfabric-devel >= 1.14.0
 BuildRequires:  cmake
@@ -145,6 +149,10 @@ Mercury plugin to support the UCX transport.
 %{_libdir}/cmake/
 
 %changelog
+* Fri Sep 15 2023 Jerome Soumagne <jerome.soumagne@intel.com> - 2.3.1~rc1-2
+- Apply patch to disable FI_MR_PROV_KEY with cxi provider
+- Apply patches from mercury upstream
+
 * Tue Aug 29 2023 Jerome Soumagne <jerome.soumagne@intel.com> - 2.3.1~rc1-1
 - Update to 2.3.1rc1
 
