@@ -1,3 +1,10 @@
+
+mercury (2.3.1~rc1-2) unstable; urgency=medium
+  [ Joseph Moore ]
+  * Add patch to na_ucx.c to force retry of out-of-memory error
+
+ -- Joseph Moore <joseph.moore@intel.com>  Tue, 26 Sep 2023 07:04:02 -0500
+
 mercury (2.3.1~rc1-1) unstable; urgency=medium
   [ Jerome Soumagne ]
   * Update to 2.3.1rc1

@@ -1,0 +1,180 @@
+diff --git a/src/na/na_ucx.c b/src/na/na_ucx.c
+index b14bd91..73d0dcf 100644
+--- a/src/na/na_ucx.c
++++ b/src/na/na_ucx.c
+@@ -26,6 +26,9 @@
+ 
+ #include <netdb.h>
+ #include <sys/socket.h>
++#include <sys/types.h>
++#include <unistd.h>
++#include <ctype.h>
+ 
+ /****************/
+ /* Local Macros */
+@@ -37,6 +40,9 @@
+ /* Default protocol */
+ #define NA_UCX_PROTOCOL_DEFAULT "all"
+ 
++/* Remap for send "out of memory" failure */
++#define NA_UCX_REMAP_SEND_NOMEM (0)
++
+ /* Default features
+  * (AM for unexpected messages and TAG for expected messages) */
+ #define NA_UCX_FEATURES (UCP_FEATURE_AM | UCP_FEATURE_TAG | UCP_FEATURE_RMA)
+@@ -256,6 +262,7 @@ struct na_ucx_class {
+     size_t expected_size_max;      /* Max expected size */
+     hg_atomic_int32_t ncontexts;   /* Number of contexts */
+     bool no_wait;                  /* Wait disabled */
++    bool remap_send_nomem;         /* remap send nomem to timeout */
+ };
+ 
+ /* Datatype used for printing info */
+@@ -446,14 +453,14 @@ na_ucp_mem_buf_deregister(void *handle, void *arg);
+  */
+ static na_return_t
+ na_ucp_am_send(ucp_ep_h ep, const void *buf, size_t buf_size,
+-    const ucp_tag_t *tag, void *request);
++    const ucp_tag_t *tag, void *request, struct na_ucx_class *na_ucx_class);
+ 
+ /**
+  * Send active message callback.
+  */
+ static void
+ na_ucp_am_send_cb(
+-    void *request, ucs_status_t status, void NA_UNUSED *user_data);
++    void *request, ucs_status_t status, void *user_data);
+ 
+ /**
+  * Check if we received an AM or push the op to OP queue.
+@@ -693,6 +700,12 @@ na_ucx_complete(struct na_ucx_op_id *na_ucx_op_id, na_return_t cb_ret);
+ static NA_INLINE void
+ na_ucx_release(void *arg);
+ 
++/**
++ * Configure class parameters from environment variables.
++ */
++static na_return_t
++na_ucx_class_env_config(struct na_ucx_class * na_ucx_class);
++
+ /********************/
+ /* Plugin callbacks */
+ /********************/
+@@ -1771,14 +1784,15 @@ na_ucp_ep_close(ucp_ep_h ep)
+ /*---------------------------------------------------------------------------*/
+ static na_return_t
+ na_ucp_am_send(ucp_ep_h ep, const void *buf, size_t buf_size,
+-    const ucp_tag_t *tag, void *request)
++    const ucp_tag_t *tag, void *request, struct na_ucx_class *na_ucx_class)
+ {
+     const ucp_request_param_t send_params = {
+         .op_attr_mask = UCP_OP_ATTR_FIELD_REQUEST | UCP_OP_ATTR_FIELD_CALLBACK |
+-                        UCP_OP_ATTR_FIELD_FLAGS,
++                        UCP_OP_ATTR_FIELD_FLAGS | UCP_OP_ATTR_FIELD_USER_DATA,
+         .cb = {.send = na_ucp_am_send_cb},
+         .flags = UCP_AM_SEND_FLAG_REPLY,
+-        .request = request};
++        .request = request,
++        .user_data = na_ucx_class};
+     ucs_status_ptr_t status_ptr;
+     na_return_t ret;
+ 
+@@ -1809,9 +1823,10 @@ error:
+ 
+ /*---------------------------------------------------------------------------*/
+ static void
+-na_ucp_am_send_cb(void *request, ucs_status_t status, void NA_UNUSED *user_data)
++na_ucp_am_send_cb(void *request, ucs_status_t status, void *user_data)
+ {
+     na_return_t cb_ret;
++    struct na_ucx_class * na_ucx_class = (struct na_ucx_class *) user_data;
+ 
+     NA_LOG_SUBSYS_DEBUG(
+         msg, "ucp_am_send_nbx() completed (%s)", ucs_status_string(status));
+@@ -1820,9 +1835,13 @@ na_ucp_am_send_cb(void *request, ucs_status_t status, void NA_UNUSED *user_data)
+         NA_GOTO_DONE(done, cb_ret, NA_SUCCESS);
+     if (status == UCS_ERR_CANCELED)
+         NA_GOTO_DONE(done, cb_ret, NA_CANCELED);
++    else if (status == UCS_ERR_NO_MEMORY && na_ucx_class->remap_send_nomem)
++        NA_GOTO_SUBSYS_ERROR(msg, done, cb_ret, NA_TIMEOUT,
++            "ucp_am_send_nbx() failed (NA_NOMEM mapped to NA_TIMEOUT)");
+     else
+         NA_GOTO_SUBSYS_ERROR(msg, done, cb_ret, na_ucs_status_to_na(status),
+-            "ucp_am_send_nbx() failed (%s)", ucs_status_string(status));
++            "ucp_am_send_nbx() failed (%s), status: (%d)",
++            ucs_status_string(status), status);
+ 
+ done:
+     na_ucx_complete((struct na_ucx_op_id *) request, cb_ret);
+@@ -2022,6 +2041,9 @@ na_ucp_msg_send_cb(
+         NA_GOTO_DONE(done, cb_ret, NA_SUCCESS);
+     if (status == UCS_ERR_CANCELED)
+         NA_GOTO_DONE(done, cb_ret, NA_CANCELED);
++    else if (status = UCS_ERR_NO_MEMORY)
++        NA_GOTO_SUBSYS_ERROR(msg, done, cb_ret, NA_TIMEOUT,
++            "ucp_am_send_nbx() failed (NA_NOMEM mapped to NA_TIMEOUT)");
+     else
+         NA_GOTO_SUBSYS_ERROR(msg, done, cb_ret, na_ucs_status_to_na(status),
+             "ucp_tag_send_nbx() failed (%s)", ucs_status_string(status));
+@@ -2945,6 +2967,24 @@ na_ucx_release(void *arg)
+     }
+ }
+ 
++/*---------------------------------------------------------------------------*/
++static na_return_t
++na_ucx_class_env_config(struct na_ucx_class * na_ucx_class)
++{
++    char *env;
++    na_return_t ret;
++
++    /* Set unexpected msg callbacks */
++    env = getenv("NA_UCX_REMAP_SEND_NOMEM");
++    if (env == NULL || env[0] == '0' || tolower(env[0]) == 'n' ||
++        tolower(env[0]) == 'f') {
++        na_ucx_class->remap_send_nomem = false;
++    } else {
++        NA_LOG_SUBSYS_DEBUG(cls, "NA_UCX_REMAP_SEND_NOMEM set");
++        na_ucx_class->remap_send_nomem = true;
++    }
++
++}
+ /********************/
+ /* Plugin callbacks */
+ /********************/
+@@ -3106,6 +3146,12 @@ na_ucx_initialize(
+     NA_CHECK_SUBSYS_ERROR(cls, na_ucx_class == NULL, error, ret, NA_NOMEM,
+         "Could not allocate NA UCX class");
+ 
++
++    /* Check env config */
++    ret = na_ucx_class_env_config(na_ucx_class);
++    NA_CHECK_SUBSYS_NA_ERROR(
++        cls, error, ret, "na_ucx_class_env_config() failed");
++
+     /* Keep a copy of the protocol name */
+     na_ucx_class->protocol_name = (na_info->protocol_name)
+                                       ? strdup(na_info->protocol_name)
+@@ -3593,9 +3639,9 @@ na_ucx_msg_buf_free(na_class_t *na_class, void *buf, void *plugin_data)
+ 
+ /*---------------------------------------------------------------------------*/
+ static na_return_t
+-na_ucx_msg_send_unexpected(na_class_t NA_UNUSED *na_class,
+-    na_context_t *context, na_cb_t callback, void *arg, const void *buf,
+-    size_t buf_size, void NA_UNUSED *plugin_data, na_addr_t *dest_addr,
++na_ucx_msg_send_unexpected(na_class_t *na_class, na_context_t *context,
++    na_cb_t callback, void *arg, const void *buf, size_t buf_size,
++    void NA_UNUSED *plugin_data, na_addr_t *dest_addr,
+     uint8_t NA_UNUSED dest_id, na_tag_t tag, na_op_id_t *op_id)
+ {
+     struct na_ucx_addr *na_ucx_addr = (struct na_ucx_addr *) dest_addr;
+@@ -3630,7 +3676,9 @@ na_ucx_msg_send_unexpected(na_class_t NA_UNUSED *na_class,
+         .buf.const_ptr = buf, .buf_size = buf_size, .tag = (ucp_tag_t) tag};
+ 
+     ret = na_ucp_am_send(na_ucx_addr->ucp_ep, buf, buf_size,
+-        &na_ucx_op_id->info.msg.tag, na_ucx_op_id);
++        &na_ucx_op_id->info.msg.tag, na_ucx_op_id,
++	NA_UCX_CLASS(na_class));
++
+     NA_CHECK_SUBSYS_NA_ERROR(msg, release, ret, "Could not post msg send");
+ 
+     return NA_SUCCESS;

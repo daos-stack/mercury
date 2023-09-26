@@ -28,6 +28,7 @@ License:  BSD
 Group:    Development/Libraries
 URL:      http://mercury-hpc.github.io/
 Source0:  https://github.com/mercury-hpc/%{name}/releases/download/v%{dl_version}/%{name}-%{dl_version}.tar.bz2
+Patch0:   na_ucx_am_send_retry.patch
 
 BuildRequires:  libfabric-devel >= 1.14.0
 BuildRequires:  cmake
@@ -145,6 +146,9 @@ Mercury plugin to support the UCX transport.
 %{_libdir}/cmake/
 
 %changelog
+* Tue Sep 26 2023 Joseph Moore <joseph.moore@intel.com> - 2.3.1~rc1-2
+- Add patch to na_ucx.c to force retry of out-of-memory error.
+
 * Tue Aug 29 2023 Jerome Soumagne <jerome.soumagne@intel.com> - 2.3.1~rc1-1
 - Update to 2.3.1rc1
 
