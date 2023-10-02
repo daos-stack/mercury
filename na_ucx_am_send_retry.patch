@@ -1,5 +1,5 @@
 diff --git a/src/na/na_ucx.c b/src/na/na_ucx.c
-index b14bd91..4c1ddb0 100644
+index b14bd91..d02f39f 100644
 --- a/src/na/na_ucx.c
 +++ b/src/na/na_ucx.c
 @@ -26,6 +26,9 @@
@@ -119,8 +119,8 @@ index b14bd91..4c1ddb0 100644
 +
 +    /* Set unexpected msg callbacks */
 +    env = getenv("NA_UCX_REMAP_SEND_NOMEM");
-+    if (env != NULL && (env[0] == '1' || tolower(env[0]) == 'y' ||
-+        tolower(env[0]) == 't')) {
++    if (env == NULL || env[0] == '1' || tolower(env[0]) == 'y' ||
++        tolower(env[0]) == 't') {
 +        na_ucx_class->remap_send_nomem = true;
 +    } else {
 +        NA_LOG_SUBSYS_DEBUG(cls, "NA_UCX_REMAP_SEND_NOMEM set");
