@@ -1,6 +1,6 @@
 Name: mercury
 Version: 2.3.1~rc1
-Release: 1%{?dist}
+Release: 2%{?dist}
 
 # dl_version is version with ~ removed
 %{lua:
