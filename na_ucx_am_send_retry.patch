@@ -1,5 +1,5 @@
 diff --git a/src/na/na_ucx.c b/src/na/na_ucx.c
-index b14bd91..3c53dce 100644
+index b14bd91..942e938 100644
 --- a/src/na/na_ucx.c
 +++ b/src/na/na_ucx.c
 @@ -26,6 +26,9 @@
@@ -96,7 +96,7 @@ index b14bd91..3c53dce 100644
  
  done:
      na_ucx_complete((struct na_ucx_op_id *) request, cb_ret);
-@@ -2945,6 +2961,25 @@ na_ucx_release(void *arg)
+@@ -2945,6 +2961,24 @@ na_ucx_release(void *arg)
      }
  }
  
@@ -105,7 +105,6 @@ index b14bd91..3c53dce 100644
 +na_ucx_class_env_config(struct na_ucx_class * na_ucx_class)
 +{
 +    char *env;
-+    na_return_t ret;
 +
 +    /* Set unexpected msg callbacks */
 +    env = getenv("NA_UCX_REMAP_SEND_NOMEM");
@@ -122,7 +121,7 @@ index b14bd91..3c53dce 100644
  /********************/
  /* Plugin callbacks */
  /********************/
-@@ -3106,6 +3141,12 @@ na_ucx_initialize(
+@@ -3106,6 +3140,12 @@ na_ucx_initialize(
      NA_CHECK_SUBSYS_ERROR(cls, na_ucx_class == NULL, error, ret, NA_NOMEM,
          "Could not allocate NA UCX class");
  
@@ -135,7 +134,7 @@ index b14bd91..3c53dce 100644
      /* Keep a copy of the protocol name */
      na_ucx_class->protocol_name = (na_info->protocol_name)
                                        ? strdup(na_info->protocol_name)
-@@ -3593,9 +3634,9 @@ na_ucx_msg_buf_free(na_class_t *na_class, void *buf, void *plugin_data)
+@@ -3593,9 +3633,9 @@ na_ucx_msg_buf_free(na_class_t *na_class, void *buf, void *plugin_data)
  
  /*---------------------------------------------------------------------------*/
  static na_return_t
@@ -148,7 +147,7 @@ index b14bd91..3c53dce 100644
      uint8_t NA_UNUSED dest_id, na_tag_t tag, na_op_id_t *op_id)
  {
      struct na_ucx_addr *na_ucx_addr = (struct na_ucx_addr *) dest_addr;
-@@ -3630,7 +3671,9 @@ na_ucx_msg_send_unexpected(na_class_t NA_UNUSED *na_class,
+@@ -3630,7 +3670,9 @@ na_ucx_msg_send_unexpected(na_class_t NA_UNUSED *na_class,
          .buf.const_ptr = buf, .buf_size = buf_size, .tag = (ucp_tag_t) tag};
  
      ret = na_ucp_am_send(na_ucx_addr->ucp_ep, buf, buf_size,
