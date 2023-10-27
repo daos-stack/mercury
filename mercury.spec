@@ -41,6 +41,11 @@ BuildRequires: libucp-devel, libucs-devel, libuct-devel
 BuildRequires: ucx-devel
 %endif
 %endif
+%if 0%{?rhel} > 7
+BuildRequires: json-c-devel
+%else
+BuildRequires: libjson-c-devel
+%endif
 
 %description
 Mercury is a Remote Procedure Call (RPC) framework specifically
@@ -148,6 +153,7 @@ Mercury plugin to support the UCX transport.
 %changelog
 * Fri Oct 27 2023 Jerome Soumagne <jerome.soumagne@intel.com> - 2.3.1-1
 - Update to 2.3.1
+- Add json-c dependency for hg_info JSON output support
 
 * Tue Sep 26 2023 Joseph Moore <joseph.moore@intel.com> - 2.3.1~rc1-2
 - Add patch to na_ucx.c to force retry of out-of-memory error.
