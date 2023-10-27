@@ -7,22 +7,6 @@ Release: 1%{?dist}
     rpm.define("dl_version " .. string.gsub(rpm.expand("%{version}"), "~", ""))
 }
 
-%if 0%{?rhel} > 0
-%if 0%{?rhel} > 7
-# only RHEL 8+ has a new enough ucx-devel
-%global ucx 1
-%else
-%global ucx 0
-%endif
-%else
-# but assume that anything else does also
-%global ucx 1
-%endif
-
-# necessary for old cmake environments (e.g., CentOS7)
-%{?!cmake_build:%global cmake_build %__cmake --build %{_vpath_srcdir}}
-%{?!cmake_install:%global cmake_install %make_install}
-
 Summary:  RPC library for HPC systems
 License:  BSD
 Group:    Development/Libraries
@@ -34,17 +18,12 @@ BuildRequires:  libfabric-devel >= 1.14.0
 BuildRequires:  cmake
 BuildRequires:  boost-devel
 BuildRequires:  gcc-c++
-%if %{ucx}
 %if 0%{?suse_version}
 BuildRequires: libucp-devel, libucs-devel, libuct-devel
+BuildRequires: libjson-c-devel
 %else
 BuildRequires: ucx-devel
-%endif
-%endif
-%if 0%{?rhel} > 7
 BuildRequires: json-c-devel
-%else
-BuildRequires: libjson-c-devel
 %endif
 
 %description
@@ -68,14 +47,13 @@ Requires: %{name}%{?_isa} = %{version}-%{release}
 Mercury development headers and libraries.
 
 
-%if %{ucx}
 %package ucx
 Summary:  Mercury with UCX
 Requires: %{name}%{?_isa} = %{version}-%{release}
 
 %description ucx
 Mercury plugin to support the UCX transport.
-%endif
+
 
 %if 0%{?suse_version}
 %global __debug_package 1
@@ -87,13 +65,8 @@ Mercury plugin to support the UCX transport.
 %autosetup -p1 -n mercury-%dl_version
 
 %build
-# Pass -pie linker flags manually on CentOS7 due to CMake PIE issues
-# see: https://cmake.org/cmake/help/latest/policy/CMP0083.html#policy:CMP0083
 %cmake  -DCMAKE_IN_SOURCE_BUILD:BOOL=ON                   \
         -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo          \
-%if 0%{?rhel} && 0%{?rhel} < 8
-        -DCMAKE_EXE_LINKER_FLAGS:STRING="-pie ${LDFLAGS}" \
-%endif
         -DCMAKE_SKIP_INSTALL_RPATH:BOOL=ON                \
         -DBUILD_DOCUMENTATION:BOOL=OFF                    \
         -DBUILD_EXAMPLES:BOOL=OFF                         \
@@ -110,7 +83,7 @@ Mercury plugin to support the UCX transport.
         -DNA_USE_DYNAMIC_PLUGINS:BOOL=ON                  \
         -DNA_INSTALL_PLUGIN_DIR:PATH=%{_libdir}/mercury   \
         -DNA_USE_SM:BOOL=ON                               \
-        -DNA_USE_UCX:BOOL=%{ucx}                          \
+        -DNA_USE_UCX:BOOL=ON                              \
         -DNA_USE_OFI:BOOL=ON
 %cmake_build
 
@@ -121,10 +94,6 @@ Mercury plugin to support the UCX transport.
 # only suse needs this; EL bakes it into glibc
 %post -p /sbin/ldconfig
 %postun -p /sbin/ldconfig
-%else
-%if 0%{?rhel} < 8
-%ldconfig_scriptlets
-%endif
 %endif
 
 %files
@@ -135,10 +104,8 @@ Mercury plugin to support the UCX transport.
 %{_libdir}/*.so.*
 %{_libdir}/mercury/libna_plugin_ofi.so
 
-%if %{ucx}
 %files ucx
 %{_libdir}/mercury/libna_plugin_ucx.so
-%endif
 
 %files devel
 %license LICENSE.txt
@@ -154,6 +121,7 @@ Mercury plugin to support the UCX transport.
 * Fri Oct 27 2023 Jerome Soumagne <jerome.soumagne@intel.com> - 2.3.1-1
 - Update to 2.3.1
 - Add json-c dependency for hg_info JSON output support
+- Drop support for CentOS7
 
 * Tue Sep 26 2023 Joseph Moore <joseph.moore@intel.com> - 2.3.1~rc1-2
 - Add patch to na_ucx.c to force retry of out-of-memory error.
