@@ -1,6 +1,6 @@
 Name: mercury
 Version: 2.3.1
-Release: 1%{?dist}
+Release: 2%{?dist}
 
 # dl_version is version with ~ removed
 %{lua:
@@ -118,6 +118,9 @@ Mercury plugin to support the UCX transport.
 %{_libdir}/cmake/
 
 %changelog
+* Wed Nov 22 2023 Jerome Soumagne <jerome.soumagne@intel.com> - 2.3.1-2
+- Rebuild for EL 8.8 and Leap 15.5
+
 * Fri Oct 27 2023 Jerome Soumagne <jerome.soumagne@intel.com> - 2.3.1-1
 - Update to 2.3.1
 - Add json-c dependency for hg_info JSON output support
