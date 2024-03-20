@@ -15,6 +15,7 @@ Source0:  https://github.com/mercury-hpc/%{name}/releases/download/v%{dl_version
 Patch0:   na_ucx_am_send_retry.patch
 Patch1:   na_ofi_cxi_warning.patch
 Patch2:   na_ucx_get_info.patch
+Patch3:   hg_util_dlog_free.patch
 
 BuildRequires:  libfabric-devel >= 1.14.0
 BuildRequires:  cmake
@@ -123,6 +124,7 @@ Mercury plugin to support the UCX transport.
 * Tue Mar 19 2024 Jerome Soumagne <jerome.soumagne@intel.com> - 2.3.1-3
 - Add patch to fix ucx hg_info
 - Add patch to remove ofi cxi MR warnings
+- Add patch to fix potential segfault on log free
 
 * Wed Nov 22 2023 Jerome Soumagne <jerome.soumagne@intel.com> - 2.3.1-2
 - Rebuild for EL 8.8 and Leap 15.5
