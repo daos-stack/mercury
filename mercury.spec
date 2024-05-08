@@ -1,6 +1,6 @@
 Name: mercury
 Version: 2.4.0~rc2
-Release: 1%{?dist}
+Release: 2%{?dist}
 
 # dl_version is version with ~ removed
 %{lua:
@@ -12,6 +12,7 @@ License:  BSD
 Group:    Development/Libraries
 URL:      http://mercury-hpc.github.io/
 Source0:  https://github.com/mercury-hpc/%{name}/releases/download/v%{dl_version}/%{name}-%{dl_version}.tar.bz2
+Patch0:   https://github.com/mercury-hpc/mercury/commit/9c2c7c64593d53a5d8b99f4b3c223b95749065e0.patch
 
 BuildRequires:  libfabric-devel >= 1.20.0
 BuildRequires:  cmake
@@ -117,6 +118,9 @@ Mercury plugin to support the UCX transport.
 %{_libdir}/cmake/
 
 %changelog
+* Wed May 8 2024 Jerome Soumagne <jerome.soumagne@intel.com> - 2.4.0~rc2-2
+- Add patch to fix FI_SOURCE issue
+
 * Tue May 7 2024 Jerome Soumagne <jerome.soumagne@intel.com> - 2.4.0~rc2-1
 - Update to 2.4.0rc2
 - Remove previous patches
