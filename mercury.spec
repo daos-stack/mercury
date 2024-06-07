@@ -1,6 +1,6 @@
 Name: mercury
 Version: 2.3.1
-Release: 3%{?dist}
+Release: 4%{?dist}
 
 # dl_version is version with ~ removed
 %{lua:
@@ -121,6 +121,9 @@ Mercury plugin to support the UCX transport.
 %{_libdir}/cmake/
 
 %changelog
+* Fri Jun 07 2024 Joseph moore <joseph.moore@intel.com> - 2.3.1-4
+- Add patch to enable logging for LRZ debugging
+
 * Tue Mar 19 2024 Jerome Soumagne <jerome.soumagne@intel.com> - 2.3.1-3
 - Add patch to fix ucx hg_info
 - Add patch to remove ofi cxi MR warnings
