@@ -1,5 +1,5 @@
 diff --git a/src/na/na_ucx.c b/src/na/na_ucx.c
-index b14bd91..2376455 100644
+index b14bd91..4af723f 100644
 --- a/src/na/na_ucx.c
 +++ b/src/na/na_ucx.c
 @@ -1490,6 +1490,8 @@ na_ucp_listener_destroy(ucp_listener_h listener)
@@ -40,7 +40,7 @@ index b14bd91..2376455 100644
  
      /* Insert new entry and create new address */
      na_ret = na_ucx_addr_map_insert(na_ucx_class, &na_ucx_class->addr_map,
-@@ -1745,10 +1760,17 @@ static void
+@@ -1745,13 +1760,20 @@ static void
  na_ucp_ep_error_cb(
      void *arg, ucp_ep_h NA_UNUSED ep, ucs_status_t NA_DEBUG_LOG_USED status)
  {
@@ -59,7 +59,11 @@ index b14bd91..2376455 100644
 +        ucs_status_string(status), host_string, serv_string, na_ucx_addr->refcount);
  
      /* Mark addr as no longer resolved to force reconnection */
-     hg_atomic_and32(&na_ucx_addr->status, ~NA_UCX_ADDR_RESOLVED);
+-    hg_atomic_and32(&na_ucx_addr->status, ~NA_UCX_ADDR_RESOLVED);
++    // hg_atomic_and32(&na_ucx_addr->status, ~NA_UCX_ADDR_RESOLVED);
+ 
+     /* Will schedule removal of address */
+     na_ucx_addr_ref_decr(na_ucx_addr);
 @@ -1823,7 +1845,6 @@ na_ucp_am_send_cb(void *request, ucs_status_t status, void NA_UNUSED *user_data)
      else
          NA_GOTO_SUBSYS_ERROR(msg, done, cb_ret, na_ucs_status_to_na(status),
