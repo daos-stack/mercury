@@ -1,6 +1,6 @@
 Name: mercury
-Version: 2.3.1
-Release: 3%{?dist}
+Version: 2.4.0~rc3
+Release: 1%{?dist}
 
 # dl_version is version with ~ removed
 %{lua:
@@ -12,12 +12,9 @@ License:  BSD
 Group:    Development/Libraries
 URL:      http://mercury-hpc.github.io/
 Source0:  https://github.com/mercury-hpc/%{name}/releases/download/v%{dl_version}/%{name}-%{dl_version}.tar.bz2
-Patch0:   na_ucx_am_send_retry.patch
-Patch1:   na_ofi_cxi_warning.patch
-Patch2:   na_ucx_get_info.patch
-Patch3:   hg_util_dlog_free.patch
+Patch0:   https://github.com/mercury-hpc/mercury/commit/ac0a2902c86b96d81473d3a844a54b5097b5d2cc.patch
 
-BuildRequires:  libfabric-devel >= 1.14.0
+BuildRequires:  libfabric-devel >= 1.15.0
 BuildRequires:  cmake
 BuildRequires:  boost-devel
 BuildRequires:  gcc-c++
@@ -121,6 +118,12 @@ Mercury plugin to support the UCX transport.
 %{_libdir}/cmake/
 
 %changelog
+* Tue Jun 25 2024 Jerome Soumagne <jerome.soumagne@intel.com> - 2.4.0~rc3-1
+- Update to 2.4.0rc3
+- Add patch to fix init info versioning
+- Remove previous patches
+- Require libfabric >= 1.15
+
 * Tue Mar 19 2024 Jerome Soumagne <jerome.soumagne@intel.com> - 2.3.1-3
 - Add patch to fix ucx hg_info
 - Add patch to remove ofi cxi MR warnings
