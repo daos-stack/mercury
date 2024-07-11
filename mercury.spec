@@ -13,6 +13,7 @@ Group:    Development/Libraries
 URL:      http://mercury-hpc.github.io/
 Source0:  https://github.com/mercury-hpc/%{name}/releases/download/v%{dl_version}/%{name}-%{dl_version}.tar.bz2
 Patch0:   https://github.com/mercury-hpc/mercury/commit/ac0a2902c86b96d81473d3a844a54b5097b5d2cc.patch
+Patch1:   https://patch-diff.githubusercontent.com/raw/mercury-hpc/mercury/pull/746.patch
 
 BuildRequires:  libfabric-devel >= 1.15.0
 BuildRequires:  cmake
