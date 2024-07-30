@@ -13,7 +13,9 @@ Group:    Development/Libraries
 URL:      http://mercury-hpc.github.io/
 Source0:  https://github.com/mercury-hpc/%{name}/releases/download/v%{dl_version}/%{name}-%{dl_version}.tar.bz2
 Patch0:   https://github.com/mercury-hpc/mercury/commit/ac0a2902c86b96d81473d3a844a54b5097b5d2cc.patch
-Patch1:   https://patch-diff.githubusercontent.com/raw/mercury-hpc/mercury/pull/746.patch
+Patch1:   https://github.com/mercury-hpc/mercury/commit/3bba0239175a82836e9371552d5ec40fbb917f76.patch
+Patch2:   https://github.com/mercury-hpc/mercury/commit/7d34ab7f3f30092ac06aeab6a9fbb7f05a7e8526.patch
+Patch3:   https://github.com/mercury-hpc/mercury/commit/11462ca7430e3172a0f21ed3b8274053466fed6f.patch
 
 BuildRequires:  libfabric-devel >= 1.15.0
 BuildRequires:  cmake
@@ -119,9 +121,9 @@ Mercury plugin to support the UCX transport.
 %{_libdir}/cmake/
 
 %changelog
-* Tue Jun 25 2024 Jerome Soumagne <jerome.soumagne@intel.com> - 2.4.0~rc3-1
+* Tue Jul 30 2024 Jerome Soumagne <jerome.soumagne@intel.com> - 2.4.0~rc3-1
 - Update to 2.4.0rc3
-- Add patch to fix init info versioning
+- Add extra patches
 - Remove previous patches
 - Require libfabric >= 1.15
 
