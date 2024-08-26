@@ -1,6 +1,6 @@
 Name: mercury
 Version: 2.4.0~rc4
-Release: 1%{?dist}
+Release: 2%{?dist}
 
 # dl_version is version with ~ removed
 %{lua:
@@ -12,7 +12,7 @@ License:  BSD
 Group:    Development/Libraries
 URL:      http://mercury-hpc.github.io/
 Source0:  https://github.com/mercury-hpc/%{name}/releases/download/v%{dl_version}/%{name}-%{dl_version}.tar.bz2
-
+Patch0:   na_ucx.patch
 BuildRequires:  libfabric-devel >= 1.15.0
 BuildRequires:  cmake
 BuildRequires:  boost-devel
@@ -117,6 +117,9 @@ Mercury plugin to support the UCX transport.
 %{_libdir}/cmake/
 
 %changelog
+* Mon Aug 26 2024 Joseph Moore <joseph.moore@intel.com> - 2.4.0~rc4-2
+- Add patch to fix seg fault in key_resolve and set ep logging to warning.
+
 * Fri Aug 02 2024 Jerome Soumagne <jerome.soumagne@intel.com> - 2.4.0~rc4-1
 - Update to 2.4.0rc4
 - Remove previous patches now included in 2.4

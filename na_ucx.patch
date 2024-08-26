@@ -1,0 +1,39 @@
+diff --git a/src/na/na_ucx.c b/src/na/na_ucx.c
+index 84eb8b0..e00566c 100644
+--- a/src/na/na_ucx.c
++++ b/src/na/na_ucx.c
+@@ -1919,12 +1919,20 @@ error:
+ /*---------------------------------------------------------------------------*/
+ static void
+ na_ucp_ep_error_cb(
+-    void *arg, ucp_ep_h NA_UNUSED ep, ucs_status_t NA_DEBUG_LOG_USED status)
++    void *arg, ucp_ep_h NA_UNUSED ep, ucs_status_t status)
+ {
++    char host_string[NI_MAXHOST];
++    char serv_string[NI_MAXSERV];
+     struct na_ucx_addr *na_ucx_addr = (struct na_ucx_addr *) arg;
+ 
+-    NA_LOG_SUBSYS_DEBUG(addr, "ep_err_handler() returned (%s) for address (%p)",
+-        ucs_status_string(status), (void *) na_ucx_addr);
++    int rc = getnameinfo((const struct sockaddr *) &na_ucx_addr->ss_addr,
++                         sizeof(struct sockaddr), host_string,
++                         sizeof(host_string), serv_string,
++                         sizeof(serv_string), NI_NUMERICHOST | NI_NUMERICSERV);
++
++    NA_LOG_SUBSYS_WARNING(addr,
++        "ep_err_handler() returned (%s) for address (%s:%s), ep (%p) with refcnt: %d",
++        ucs_status_string(status), host_string, serv_string, ep, na_ucx_addr->refcount);
+ 
+     /* Mark addr as no longer resolved to force reconnection */
+     hg_atomic_and32(&na_ucx_addr->status, ~NA_UCX_ADDR_RESOLVED);
+@@ -3061,6 +3069,10 @@ na_ucx_rma_key_resolve(ucp_ep_h ep, struct na_ucx_mem_handle *na_ucx_mem_handle,
+ 
+     hg_thread_mutex_lock(&na_ucx_mem_handle->rkey_unpack_lock);
+ 
++    if (!ep)
++        NA_GOTO_SUBSYS_ERROR(
++            mem, error, ret, NA_INVALID_ARG, "Invalid endpoint (%p)", ep);
++	
+     switch (hg_atomic_get32(&na_ucx_mem_handle->type)) {
+         case NA_UCX_MEM_HANDLE_REMOTE_PACKED: {
+             ucs_status_t status = ucp_ep_rkey_unpack(ep,
