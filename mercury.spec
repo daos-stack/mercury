@@ -1,5 +1,5 @@
 Name: mercury
-Version: 2.4.0~rc4
+Version: 2.4.0~rc5
 Release: 1%{?dist}
 
 # dl_version is version with ~ removed
@@ -117,6 +117,9 @@ Mercury plugin to support the UCX transport.
 %{_libdir}/cmake/
 
 %changelog
+* Mon Aug 26 2024 Jerome Soumagne <jerome.soumagne@intel.com> - 2.4.0~rc5-1
+- Update to 2.4.0rc5
+
 * Fri Aug 02 2024 Jerome Soumagne <jerome.soumagne@intel.com> - 2.4.0~rc4-1
 - Update to 2.4.0rc4
 - Remove previous patches now included in 2.4
