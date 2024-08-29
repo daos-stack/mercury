@@ -1,3 +1,7 @@
+mercury (2.4.0~rc5-2) unstable; urgency=medium
+  [ Joseph Moore ]
+  * Add patch to na_ucx.c to check ep in key_resolve
+
 mercury (2.4.0~rc5-1) unstable; urgency=medium
   [ Jerome Soumagne ]
   * Update to 2.4.0rc5
