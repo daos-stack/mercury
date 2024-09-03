@@ -1,3 +1,9 @@
+mercury (2.4.0~rc5-2) unstable; urgency=medium
+  [ Joseph Moore ]
+  * Add patch to na_ucx.c to check ep in key_resolve
+
+ -- Joseph Moore <joseph.moore@intel.com>  Thu, 29 Aug 2024 09:00:00 -0600
+
 mercury (2.4.0~rc5-1) unstable; urgency=medium
   [ Jerome Soumagne ]
   * Update to 2.4.0rc5
