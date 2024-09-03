@@ -1,8 +1,106 @@
 diff --git a/src/na/na_ucx.c b/src/na/na_ucx.c
-index 84eb8b0..290dfe8 100644
+index 84eb8b0..e092e50 100644
 --- a/src/na/na_ucx.c
 +++ b/src/na/na_ucx.c
-@@ -3061,6 +3061,9 @@ na_ucx_rma_key_resolve(ucp_ep_h ep, struct na_ucx_mem_handle *na_ucx_mem_handle,
+@@ -1666,6 +1666,9 @@ na_ucp_listener_destroy(ucp_listener_h listener)
+ static void
+ na_ucp_listener_conn_cb(ucp_conn_request_h conn_request, void *arg)
+ {
++
++    char host_string[NI_MAXHOST];
++    char serv_string[NI_MAXSERV];
+     struct na_ucx_class *na_ucx_class = (struct na_ucx_class *) arg;
+     ucp_conn_request_attr_t conn_request_attrs = {
+         .field_mask = UCP_CONN_REQUEST_ATTR_FIELD_CLIENT_ADDR};
+@@ -1683,13 +1686,24 @@ na_ucp_listener_conn_cb(ucp_conn_request_h conn_request, void *arg)
+             UCP_CONN_REQUEST_ATTR_FIELD_CLIENT_ADDR) == 0,
+         error, "conn attributes contain no client addr");
+ 
++    int rc = getnameinfo((const struct sockaddr *) &conn_request_attrs.client_address,
++                         sizeof(struct sockaddr), host_string,
++                         sizeof(host_string), serv_string,
++                         sizeof(serv_string), NI_NUMERICHOST | NI_NUMERICSERV);
++
+     /* Lookup address from table */
+     addr_key = (ucs_sock_addr_t){
+         .addr = (const struct sockaddr *) &conn_request_attrs.client_address,
+         .addrlen = sizeof(conn_request_attrs.client_address)};
+     na_ucx_addr = na_ucx_addr_map_lookup(&na_ucx_class->addr_map, &addr_key);
+-    NA_CHECK_SUBSYS_ERROR_NORET(addr, na_ucx_addr != NULL, error,
+-        "An entry is already present for this address");
++ 
++
++    if (na_ucx_addr != NULL) {
++        NA_LOG_SUBSYS_WARNING(addr,
++	    "An entry is already present for this address: %s:%s, refcnt: %d",
++            host_string, serv_string, na_ucx_addr->refcount);
++        na_ucx_addr_map_remove(&na_ucx_class->addr_map, &addr_key);
++    }
+ 
+     /* Insert new entry and create new address */
+     na_ret = na_ucx_addr_map_insert(na_ucx_class, &na_ucx_class->addr_map,
+@@ -1919,17 +1933,29 @@ error:
+ /*---------------------------------------------------------------------------*/
+ static void
+ na_ucp_ep_error_cb(
+-    void *arg, ucp_ep_h NA_UNUSED ep, ucs_status_t NA_DEBUG_LOG_USED status)
++    void *arg, ucp_ep_h NA_UNUSED ep, ucs_status_t status)
+ {
++    char host_string[NI_MAXHOST];
++    char serv_string[NI_MAXSERV];
+     struct na_ucx_addr *na_ucx_addr = (struct na_ucx_addr *) arg;
+ 
+-    NA_LOG_SUBSYS_DEBUG(addr, "ep_err_handler() returned (%s) for address (%p)",
+-        ucs_status_string(status), (void *) na_ucx_addr);
++    int rc = getnameinfo((const struct sockaddr *) &na_ucx_addr->ss_addr,
++                         sizeof(struct sockaddr), host_string,
++                         sizeof(host_string), serv_string,
++                         sizeof(serv_string), NI_NUMERICHOST | NI_NUMERICSERV);
++
++    NA_LOG_SUBSYS_WARNING(addr,
++        "ep_err_handler() returned (%s) for address (%s:%s), ep (%p) with refcnt: %d",
++        ucs_status_string(status), host_string, serv_string, ep, na_ucx_addr->refcount);
+ 
+     /* Mark addr as no longer resolved to force reconnection */
+     hg_atomic_and32(&na_ucx_addr->status, ~NA_UCX_ADDR_RESOLVED);
+ 
+     /* Will schedule removal of address */
++    if (status == UCS_ERR_CONNECTION_RESET)
++        while (na_ucx_addr->refcount > 1)
++            na_ucx_addr_ref_decr(na_ucx_addr);
++
+     na_ucx_addr_ref_decr(na_ucx_addr);
+ }
+ 
+@@ -2993,7 +3019,7 @@ na_ucx_unexpected_info_free(
+ 
+ /*---------------------------------------------------------------------------*/
+ static na_return_t
+-na_ucx_rma(struct na_ucx_class NA_UNUSED *na_ucx_class, na_context_t *context,
++na_ucx_rma(struct na_ucx_class *na_ucx_class, na_context_t *context,
+     na_cb_type_t cb_type, na_cb_t callback, void *arg,
+     struct na_ucx_mem_handle *local_mem_handle, na_offset_t local_offset,
+     struct na_ucx_mem_handle *remote_mem_handle, na_offset_t remote_offset,
+@@ -3023,6 +3049,18 @@ na_ucx_rma(struct na_ucx_class NA_UNUSED *na_ucx_class, na_context_t *context,
+ 
+     /* There is no need to have a fully resolved address to start an RMA.
+      * This is only necessary for two-sided communication. */
++    /* The above assumption is now in question, so the following will resolve
++     * the address if required. */
++
++    /* Check addr to ensure the EP for that addr is still valid */
++    if (!(hg_atomic_get32(&na_ucx_addr->status) & NA_UCX_ADDR_RESOLVED)) {
++        ret = na_ucx_addr_map_update(
++            na_ucx_class, &na_ucx_class->addr_map, na_ucx_addr);
++        NA_CHECK_SUBSYS_NA_ERROR(
++            addr, error, ret, "Could not update NA UCX address");
++    }
++    NA_CHECK_SUBSYS_ERROR(msg, na_ucx_addr->ucp_ep == NULL, error, ret,
++        NA_ADDRNOTAVAIL, "UCP endpoint is NULL for that address");
+ 
+     /* TODO UCX requires the remote key to be bound to the origin, do we need a
+      * new API? */
+@@ -3061,6 +3099,9 @@ na_ucx_rma_key_resolve(ucp_ep_h ep, struct na_ucx_mem_handle *na_ucx_mem_handle,
  
      hg_thread_mutex_lock(&na_ucx_mem_handle->rkey_unpack_lock);
  
