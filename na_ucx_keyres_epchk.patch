@@ -1,5 +1,5 @@
 diff --git a/src/na/na_ucx.c b/src/na/na_ucx.c
-index 84eb8b0..e092e50 100644
+index 84eb8b0..78e63d6 100644
 --- a/src/na/na_ucx.c
 +++ b/src/na/na_ucx.c
 @@ -1666,6 +1666,9 @@ na_ucp_listener_destroy(ucp_listener_h listener)
@@ -39,7 +39,7 @@ index 84eb8b0..e092e50 100644
  
      /* Insert new entry and create new address */
      na_ret = na_ucx_addr_map_insert(na_ucx_class, &na_ucx_class->addr_map,
-@@ -1919,17 +1933,29 @@ error:
+@@ -1919,12 +1933,20 @@ error:
  /*---------------------------------------------------------------------------*/
  static void
  na_ucp_ep_error_cb(
@@ -63,16 +63,7 @@ index 84eb8b0..e092e50 100644
  
      /* Mark addr as no longer resolved to force reconnection */
      hg_atomic_and32(&na_ucx_addr->status, ~NA_UCX_ADDR_RESOLVED);
- 
-     /* Will schedule removal of address */
-+    if (status == UCS_ERR_CONNECTION_RESET)
-+        while (na_ucx_addr->refcount > 1)
-+            na_ucx_addr_ref_decr(na_ucx_addr);
-+
-     na_ucx_addr_ref_decr(na_ucx_addr);
- }
- 
-@@ -2993,7 +3019,7 @@ na_ucx_unexpected_info_free(
+@@ -2993,7 +3015,7 @@ na_ucx_unexpected_info_free(
  
  /*---------------------------------------------------------------------------*/
  static na_return_t
@@ -81,7 +72,7 @@ index 84eb8b0..e092e50 100644
      na_cb_type_t cb_type, na_cb_t callback, void *arg,
      struct na_ucx_mem_handle *local_mem_handle, na_offset_t local_offset,
      struct na_ucx_mem_handle *remote_mem_handle, na_offset_t remote_offset,
-@@ -3023,6 +3049,18 @@ na_ucx_rma(struct na_ucx_class NA_UNUSED *na_ucx_class, na_context_t *context,
+@@ -3023,6 +3045,18 @@ na_ucx_rma(struct na_ucx_class NA_UNUSED *na_ucx_class, na_context_t *context,
  
      /* There is no need to have a fully resolved address to start an RMA.
       * This is only necessary for two-sided communication. */
@@ -100,7 +91,7 @@ index 84eb8b0..e092e50 100644
  
      /* TODO UCX requires the remote key to be bound to the origin, do we need a
       * new API? */
-@@ -3061,6 +3099,9 @@ na_ucx_rma_key_resolve(ucp_ep_h ep, struct na_ucx_mem_handle *na_ucx_mem_handle,
+@@ -3061,6 +3095,9 @@ na_ucx_rma_key_resolve(ucp_ep_h ep, struct na_ucx_mem_handle *na_ucx_mem_handle,
  
      hg_thread_mutex_lock(&na_ucx_mem_handle->rkey_unpack_lock);
  
