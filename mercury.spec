@@ -1,6 +1,6 @@
 Name: mercury
-Version: 2.4.0~rc4
-Release: 2%{?dist}
+Version: 2.4.0~rc5
+Release: 3%{?dist}
 
 # --without ucx build switch
 %bcond_without ucx
@@ -15,6 +15,7 @@ License:  BSD
 Group:    Development/Libraries
 URL:      http://mercury-hpc.github.io/
 Source0:  https://github.com/mercury-hpc/%{name}/releases/download/v%{dl_version}/%{name}-%{dl_version}.tar.bz2
+Patch0:   na_ucx_keyres_epchk.patch
 
 BuildRequires:  libfabric-devel >= 1.15.0
 BuildRequires:  cmake
@@ -130,8 +131,14 @@ Mercury plugin to support the UCX transport.
 %{_libdir}/cmake/
 
 %changelog
-* Tue Aug 27 2024 Brian J. Murrell <brian.murrell@intel.com> - 2.4.0~rc4-2
+* Tue Aug 27 2024 Brian J. Murrell <brian.murrell@intel.com> - 2.4.0~rc5-3
 - Add --without ucx build switch
+
+* Thu Aug 29 2024 Joseph Moore <joseph.moore@intel.com> - 2.4.0~rc5-2
+- Add patch to na_ucx.c to check ep in key_resolve.
+
+* Mon Aug 26 2024 Jerome Soumagne <jerome.soumagne@intel.com> - 2.4.0~rc5-1
+- Update to 2.4.0rc5
 
 * Fri Aug 02 2024 Jerome Soumagne <jerome.soumagne@intel.com> - 2.4.0~rc4-1
 - Update to 2.4.0rc4
