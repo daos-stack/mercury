@@ -131,7 +131,7 @@ Mercury plugin to support the UCX transport.
 %{_libdir}/cmake/
 
 %changelog
-* Tue Aug 27 2024 Brian J. Murrell <brian.murrell@intel.com> - 2.4.0~rc5-3
+* Wed Sep 04 2024 Brian J. Murrell <brian.murrell@intel.com> - 2.4.0~rc5-3
 - Add --without ucx build switch
 
 * Thu Aug 29 2024 Joseph Moore <joseph.moore@intel.com> - 2.4.0~rc5-2
