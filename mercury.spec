@@ -1,6 +1,6 @@
 Name: mercury
 Version: 2.4.0~rc5
-Release: 2%{?dist}
+Release: 3%{?dist}
 
 # dl_version is version with ~ removed
 %{lua:
@@ -118,6 +118,9 @@ Mercury plugin to support the UCX transport.
 %{_libdir}/cmake/
 
 %changelog
+* Wed Sep 04 2024 Joseph Moore <joseph.moore@intel.com> - 2.4.0~rc5-3
+- Update patch to na_ucx.c to check reconnect state before key_resolve.
+
 * Thu Aug 29 2024 Joseph Moore <joseph.moore@intel.com> - 2.4.0~rc5-2
 - Add patch to na_ucx.c to check ep in key_resolve.
 
