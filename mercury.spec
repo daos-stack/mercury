@@ -13,7 +13,6 @@ Group:    Development/Libraries
 URL:      http://mercury-hpc.github.io/
 Source0:  https://github.com/mercury-hpc/%{name}/releases/download/v%{dl_version}/%{name}-%{dl_version}.tar.bz2
 Patch0:   na_ucx_keyres_epchk.patch
-Patch1:   https://patch-diff.githubusercontent.com/raw/mercury-hpc/mercury/pull/760.patch
 
 BuildRequires:  libfabric-devel >= 1.15.0
 BuildRequires:  cmake
