@@ -1,5 +1,4 @@
 diff --git a/src/na/na_ucx.c b/src/na/na_ucx.c
-<<<<<<< HEAD
 index 84eb8b0..27b9622 100644
 --- a/src/na/na_ucx.c
 +++ b/src/na/na_ucx.c
@@ -123,12 +122,6 @@ index 84eb8b0..27b9622 100644
      /* TODO UCX requires the remote key to be bound to the origin, do we need a
       * new API? */
 @@ -3061,6 +3104,9 @@ na_ucx_rma_key_resolve(ucp_ep_h ep, struct na_ucx_mem_handle *na_ucx_mem_handle,
-=======
-index 84eb8b0..290dfe8 100644
---- a/src/na/na_ucx.c
-+++ b/src/na/na_ucx.c
-@@ -3061,6 +3061,9 @@ na_ucx_rma_key_resolve(ucp_ep_h ep, struct na_ucx_mem_handle *na_ucx_mem_handle,
->>>>>>> master
  
      hg_thread_mutex_lock(&na_ucx_mem_handle->rkey_unpack_lock);
  
