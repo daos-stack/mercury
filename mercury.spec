@@ -13,6 +13,7 @@ Group:    Development/Libraries
 URL:      http://mercury-hpc.github.io/
 Source0:  https://github.com/mercury-hpc/%{name}/releases/download/v%{dl_version}/%{name}-%{dl_version}.tar.bz2
 Patch0:   na_ucx_keyres_epchk.patch
+Patch1:   https://patch-diff.githubusercontent.com/raw/mercury-hpc/mercury/pull/760.patch
 
 BuildRequires:  libfabric-devel >= 1.15.0
 BuildRequires:  cmake
@@ -120,6 +121,7 @@ Mercury plugin to support the UCX transport.
 %changelog
 * Wed Sep 04 2024 Joseph Moore <joseph.moore@intel.com> - 2.4.0~rc5-3
 - Update patch to na_ucx.c to check reconnect state before key_resolve.
+- Add patch that adds hg_first perf benchmark
 
 * Thu Aug 29 2024 Joseph Moore <joseph.moore@intel.com> - 2.4.0~rc5-2
 - Add patch to na_ucx.c to check ep in key_resolve.
