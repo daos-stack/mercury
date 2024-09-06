@@ -1,5 +1,5 @@
 diff --git a/src/na/na_ucx.c b/src/na/na_ucx.c
-index 84eb8b0..27b9622 100644
+index 84eb8b0..a6d0485 100644
 --- a/src/na/na_ucx.c
 +++ b/src/na/na_ucx.c
 @@ -1666,11 +1666,15 @@ na_ucp_listener_destroy(ucp_listener_h listener)
@@ -65,7 +65,7 @@ index 84eb8b0..27b9622 100644
  static void
  na_ucp_ep_error_cb(
 -    void *arg, ucp_ep_h NA_UNUSED ep, ucs_status_t NA_DEBUG_LOG_USED status)
-+    void *arg, ucp_ep_h NA_UNUSED ep, ucs_status_t status)
++    void *arg, ucp_ep_h ep, ucs_status_t status)
  {
 +    char host_string[NI_MAXHOST];
 +    char serv_string[NI_MAXSERV];
@@ -93,7 +93,32 @@ index 84eb8b0..27b9622 100644
  
      /* Pop op ID from queue */
      hg_thread_spin_lock(&unexpected_op_queue->lock);
-@@ -2993,7 +3024,7 @@ na_ucx_unexpected_info_free(
+@@ -2930,6 +2961,14 @@ static NA_INLINE void
+ na_ucx_addr_ref_decr(struct na_ucx_addr *na_ucx_addr)
+ {
+     int32_t refcount = hg_atomic_decr32(&na_ucx_addr->refcount);
++    char host_string[NI_MAXHOST];
++    char serv_string[NI_MAXSERV];
++
++    int rc = getnameinfo((const struct sockaddr *) &na_ucx_addr->ss_addr,
++                         sizeof(struct sockaddr), host_string,
++                         sizeof(host_string), serv_string,
++                         sizeof(serv_string), NI_NUMERICHOST | NI_NUMERICSERV);
++
+     NA_LOG_SUBSYS_DEBUG(addr, "Refcount for address (%p) is: %" PRId32,
+         (void *) na_ucx_addr, refcount);
+ 
+@@ -2938,7 +2977,8 @@ na_ucx_addr_ref_decr(struct na_ucx_addr *na_ucx_addr)
+         struct na_ucx_addr_pool *addr_pool =
+             &na_ucx_addr->na_ucx_class->addr_pool;
+ 
+-        NA_LOG_SUBSYS_DEBUG(addr, "Releasing address %p", (void *) na_ucx_addr);
++        NA_LOG_SUBSYS_WARNING(addr, "Releasing address (%s:%s) ep: (%p)",
++                              host_string, serv_string, na_ucx_addr->ucp_ep);
+         na_ucx_addr_release(na_ucx_addr);
+ 
+         /* Push address back to addr pool */
+@@ -2993,7 +3033,7 @@ na_ucx_unexpected_info_free(
  
  /*---------------------------------------------------------------------------*/
  static na_return_t
@@ -102,7 +127,7 @@ index 84eb8b0..27b9622 100644
      na_cb_type_t cb_type, na_cb_t callback, void *arg,
      struct na_ucx_mem_handle *local_mem_handle, na_offset_t local_offset,
      struct na_ucx_mem_handle *remote_mem_handle, na_offset_t remote_offset,
-@@ -3023,6 +3054,18 @@ na_ucx_rma(struct na_ucx_class NA_UNUSED *na_ucx_class, na_context_t *context,
+@@ -3023,6 +3063,18 @@ na_ucx_rma(struct na_ucx_class NA_UNUSED *na_ucx_class, na_context_t *context,
  
      /* There is no need to have a fully resolved address to start an RMA.
       * This is only necessary for two-sided communication. */
@@ -121,7 +146,7 @@ index 84eb8b0..27b9622 100644
  
      /* TODO UCX requires the remote key to be bound to the origin, do we need a
       * new API? */
-@@ -3061,6 +3104,9 @@ na_ucx_rma_key_resolve(ucp_ep_h ep, struct na_ucx_mem_handle *na_ucx_mem_handle,
+@@ -3061,6 +3113,9 @@ na_ucx_rma_key_resolve(ucp_ep_h ep, struct na_ucx_mem_handle *na_ucx_mem_handle,
  
      hg_thread_mutex_lock(&na_ucx_mem_handle->rkey_unpack_lock);
  
