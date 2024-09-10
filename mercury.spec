@@ -1,6 +1,9 @@
 Name: mercury
 Version: 2.4.0~rc5
-Release: 3%{?dist}
+Release: 4%{?dist}
+
+# --without ucx build switch
+%bcond_without ucx
 
 # dl_version is version with ~ removed
 %{lua:
@@ -20,10 +23,14 @@ BuildRequires:  cmake
 BuildRequires:  boost-devel
 BuildRequires:  gcc-c++
 %if 0%{?suse_version}
+%if %{with ucx}
 BuildRequires: libucp-devel, libucs-devel, libuct-devel
+%endif
 BuildRequires: libjson-c-devel
 %else
+%if %{with ucx}
 BuildRequires: ucx-devel
+%endif
 BuildRequires: json-c-devel
 %endif
 
@@ -48,12 +55,14 @@ Requires: %{name}%{?_isa} = %{version}-%{release}
 Mercury development headers and libraries.
 
 
+%if %{with ucx}
 %package ucx
 Summary:  Mercury with UCX
 Requires: %{name}%{?_isa} = %{version}-%{release}
 
 %description ucx
 Mercury plugin to support the UCX transport.
+%endif
 
 
 %if 0%{?suse_version}
@@ -84,7 +93,9 @@ Mercury plugin to support the UCX transport.
         -DNA_USE_DYNAMIC_PLUGINS:BOOL=ON                  \
         -DNA_INSTALL_PLUGIN_DIR:PATH=%{_libdir}/mercury   \
         -DNA_USE_SM:BOOL=ON                               \
+%if %{with ucx}
         -DNA_USE_UCX:BOOL=ON                              \
+%endif
         -DNA_USE_OFI:BOOL=ON
 %cmake_build
 
@@ -105,8 +116,10 @@ Mercury plugin to support the UCX transport.
 %{_libdir}/*.so.*
 %{_libdir}/mercury/libna_plugin_ofi.so
 
+%if %{with ucx}
 %files ucx
 %{_libdir}/mercury/libna_plugin_ucx.so
+%endif
 
 %files devel
 %license LICENSE.txt
@@ -119,9 +132,12 @@ Mercury plugin to support the UCX transport.
 %{_libdir}/cmake/
 
 %changelog
-* Wed Sep 04 2024 Joseph Moore <joseph.moore@intel.com> - 2.4.0~rc5-3
+* Wed Sep 04 2024 Joseph Moore <joseph.moore@intel.com> - 2.4.0~rc5-4
 - Update patch to na_ucx.c to check reconnect state before key_resolve.
 - Add patch that adds hg_first perf benchmark
+
+* Wed Sep 04 2024 Brian J. Murrell <brian.murrell@intel.com> - 2.4.0~rc5-3
+- Add --without ucx build switch
 
 * Thu Aug 29 2024 Joseph Moore <joseph.moore@intel.com> - 2.4.0~rc5-2
 - Add patch to na_ucx.c to check ep in key_resolve.
