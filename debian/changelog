@@ -1,3 +1,10 @@
+mercury (2.4.0-1) unstable; urgency=medium
+  [ Jerome Soumagne ]
+  * Update to 2.4.0
+  * Require libfabric >= 1.20
+
+ -- Jerome Soumagne <jerome.soumagne@intel.com>  Fri, 25 Oct 2024 09:00:00 -0600
+
 mercury (2.4.0~rc5-4) unstable; urgency=medium
   [ Joseph Moore ]
   * Update patch to na_ucx.c to add fix for connection accept.
@@ -7,6 +14,7 @@ mercury (2.4.0~rc5-4) unstable; urgency=medium
 mercury (2.4.0~rc5-3) unstable; urgency=medium
   [ Brian J. Murrell ]
   * Add --without ucx build switch
+
  -- Brian J. Murrell <brian.murrell@intel.com>  Wed, Sep 04 2024 09:00:00-0600
 
 mercury (2.4.0~rc5-2) unstable; urgency=medium
