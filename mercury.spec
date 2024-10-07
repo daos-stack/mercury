@@ -1,6 +1,6 @@
 Name: mercury
-Version: 2.4.0~rc6
-Release: 4%{?dist}
+Version: 2.4.0~rc5
+Release: 5%{?dist}
 
 # --without ucx build switch
 %bcond_without ucx
