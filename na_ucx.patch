@@ -1,5 +1,5 @@
 diff --git a/src/na/na_ucx.c b/src/na/na_ucx.c
-index 84eb8b0..c991faf 100644
+index 84eb8b0..92bc6da 100644
 --- a/src/na/na_ucx.c
 +++ b/src/na/na_ucx.c
 @@ -614,7 +614,7 @@ na_ucx_addr_map_update(struct na_ucx_class *na_ucx_class,
@@ -137,11 +137,7 @@ index 84eb8b0..c991faf 100644
  
  #ifdef NA_UCX_HAS_LIB_QUERY
      ucp_lib_attrs.field_mask = UCP_LIB_ATTR_FIELD_MAX_THREAD_LEVEL;
-@@ -3312,9 +3336,11 @@ na_ucx_initialize(
-     NA_CHECK_SUBSYS_NA_ERROR(
-         cls, error, ret, "Could not initialize UCX config");
- 
-+    printf("Context thread mode: %d\n", context_thread_mode);
+@@ -3315,6 +3339,7 @@ na_ucx_initialize(
      /* Create UCP context and release config */
      ret = na_ucp_context_create(config, no_wait, context_thread_mode,
          &na_ucx_class->ucp_context, &na_ucx_class->ucp_request_size);
