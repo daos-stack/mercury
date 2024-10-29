@@ -1,6 +1,6 @@
 Name: mercury
 Version: 2.4.0~rc5
-Release: 4%{?dist}
+Release: 5%{?dist}
 
 # --without ucx build switch
 %bcond_without ucx
@@ -131,6 +131,9 @@ Mercury plugin to support the UCX transport.
 %{_libdir}/cmake/
 
 %changelog
+* Mon Oct 07 2024 Joseph Moore <joseph.moore@intel.com> - 2.4.0~rc5-5
+- Update patch to na_ucx.c to set thread-safe on clients.
+
 * Thu Sep 26 2024 Joseph Moore <joseph.moore@intel.com> - 2.4.0~rc5-4
 - Update patch to na_ucx.c to add fix for connection accept.
 
