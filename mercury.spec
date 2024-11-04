@@ -1,6 +1,11 @@
 Name: mercury
+<<<<<<< HEAD
 Version: 2.4.0
 Release: 1%{?dist}
+=======
+Version: 2.4.0~rc5
+Release: 5%{?dist}
+>>>>>>> master
 
 # --without ucx build switch
 %bcond_without ucx
@@ -131,9 +136,12 @@ Mercury plugin to support the UCX transport.
 %{_libdir}/cmake/
 
 %changelog
-* Fri Oct 25 2024 Jerome Soumagne <jerome.soumagne@intel.com> - 2.4.0-1
+* Mon Nov 04 2024 Jerome Soumagne <jerome.soumagne@intel.com> - 2.4.0-1
 - Update to 2.4.0
 - Update required libfabric version (>= 1.20)
+
+* Mon Oct 07 2024 Joseph Moore <joseph.moore@intel.com> - 2.4.0~rc5-5
+- Update patch to na_ucx.c to set thread-safe on clients.
 
 * Thu Sep 26 2024 Joseph Moore <joseph.moore@intel.com> - 2.4.0~rc5-4
 - Update patch to na_ucx.c to add fix for connection accept.
