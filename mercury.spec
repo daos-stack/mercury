@@ -1,6 +1,6 @@
 Name: mercury
-Version: 2.4.0~rc5
-Release: 5%{?dist}
+Version: 2.4.0
+Release: 1%{?dist}
 
 # --without ucx build switch
 %bcond_without ucx
@@ -17,7 +17,7 @@ URL:      http://mercury-hpc.github.io/
 Source0:  https://github.com/mercury-hpc/%{name}/releases/download/v%{dl_version}/%{name}-%{dl_version}.tar.bz2
 Patch0:   na_ucx.patch
 
-BuildRequires:  libfabric-devel >= 1.15.0
+BuildRequires:  libfabric-devel >= 1.20
 BuildRequires:  cmake
 BuildRequires:  boost-devel
 BuildRequires:  gcc-c++
@@ -131,6 +131,10 @@ Mercury plugin to support the UCX transport.
 %{_libdir}/cmake/
 
 %changelog
+* Mon Nov 04 2024 Jerome Soumagne <jerome.soumagne@intel.com> - 2.4.0-1
+- Update to 2.4.0
+- Update required libfabric version (>= 1.20)
+
 * Mon Oct 07 2024 Joseph Moore <joseph.moore@intel.com> - 2.4.0~rc5-5
 - Update patch to na_ucx.c to set thread-safe on clients.
 
