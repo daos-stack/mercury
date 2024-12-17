@@ -1,5 +1,5 @@
 diff --git a/src/na/na_ucx.c b/src/na/na_ucx.c
-index 84eb8b0..8011056 100644
+index f8fbb23..6f5c8e2 100644
 --- a/src/na/na_ucx.c
 +++ b/src/na/na_ucx.c
 @@ -441,6 +441,12 @@ na_ucp_ep_create(ucp_worker_h worker, ucp_ep_params_t *ep_params,
@@ -7,8 +7,8 @@ index 84eb8b0..8011056 100644
  na_ucp_ep_error_cb(void *arg, ucp_ep_h ep, ucs_status_t status);
  
 +/**
-+  * Flush endpoint.
-+  */
++ * Flush endpoint.
++ */
 +static ucs_status_ptr_t
 +na_ucp_ep_flush(ucp_ep_h ep);
 +
@@ -24,15 +24,7 @@ index 84eb8b0..8011056 100644
  
  /**
   * Hash connection ID.
-@@ -1436,6 +1442,7 @@ na_ucp_context_create(const ucp_config_t *config, bool no_wait,
-     /* Skip wakeup feature if not waiting */
-     if (no_wait != true)
-         context_params.features |= UCP_FEATURE_WAKEUP;
-+    //context_params |= UCP_PARAM_FIELD_REQUEST_INIT | UCP_PARAM_FIELD_REQUEST_CLEANUP;
- 
-     if (thread_mode == UCS_THREAD_MODE_MULTI) {
-         /* If the UCP context can potentially be used by more than one
-@@ -1688,8 +1695,12 @@ na_ucp_listener_conn_cb(ucp_conn_request_h conn_request, void *arg)
+@@ -1691,8 +1697,12 @@ na_ucp_listener_conn_cb(ucp_conn_request_h conn_request, void *arg)
          .addr = (const struct sockaddr *) &conn_request_attrs.client_address,
          .addrlen = sizeof(conn_request_attrs.client_address)};
      na_ucx_addr = na_ucx_addr_map_lookup(&na_ucx_class->addr_map, &addr_key);
@@ -47,10 +39,11 @@ index 84eb8b0..8011056 100644
  
      /* Insert new entry and create new address */
      na_ret = na_ucx_addr_map_insert(na_ucx_class, &na_ucx_class->addr_map,
-@@ -1933,14 +1944,33 @@ na_ucp_ep_error_cb(
+@@ -1936,14 +1946,34 @@ na_ucp_ep_error_cb(
      na_ucx_addr_ref_decr(na_ucx_addr);
  }
  
++
 +/*---------------------------------------------------------------------------*/
 +static ucs_status_ptr_t
 +na_ucp_ep_flush(ucp_ep_h ep)
@@ -83,7 +76,7 @@ index 84eb8b0..8011056 100644
          ucs_status_string(UCS_PTR_STATUS(status_ptr)));
  }
  
-@@ -2722,7 +2752,7 @@ unlock:
+@@ -2725,7 +2755,7 @@ unlock:
  
  /*---------------------------------------------------------------------------*/
  static na_return_t
@@ -92,7 +85,7 @@ index 84eb8b0..8011056 100644
  {
      struct na_ucx_addr *na_ucx_addr = NULL;
      na_return_t ret = NA_SUCCESS;
-@@ -2731,13 +2761,14 @@ na_ucx_addr_map_remove(struct na_ucx_map *na_ucx_map, ucs_sock_addr_t *addr_key)
+@@ -2734,13 +2764,14 @@ na_ucx_addr_map_remove(struct na_ucx_map *na_ucx_map, ucs_sock_addr_t *addr_key)
      hg_thread_rwlock_wrlock(&na_ucx_map->lock);
  
      na_ucx_addr = hg_hash_table_lookup(
@@ -110,7 +103,7 @@ index 84eb8b0..8011056 100644
      NA_CHECK_SUBSYS_ERROR(addr, rc != 1, unlock, ret, NA_NOENTRY,
          "hg_hash_table_remove() failed");
  
-@@ -2841,14 +2872,29 @@ na_ucx_addr_release(struct na_ucx_addr *na_ucx_addr)
+@@ -2844,14 +2875,29 @@ na_ucx_addr_release(struct na_ucx_addr *na_ucx_addr)
          NA_UCX_PRINT_ADDR_KEY_INFO("Removing address", &na_ucx_addr->addr_key);
  
          na_ucx_addr_map_remove(
@@ -142,7 +135,7 @@ index 84eb8b0..8011056 100644
          na_ucx_addr->ucp_ep = NULL;
      }
  
-@@ -3023,6 +3069,18 @@ na_ucx_rma(struct na_ucx_class NA_UNUSED *na_ucx_class, na_context_t *context,
+@@ -3026,6 +3072,18 @@ na_ucx_rma(struct na_ucx_class NA_UNUSED *na_ucx_class, na_context_t *context,
  
      /* There is no need to have a fully resolved address to start an RMA.
       * This is only necessary for two-sided communication. */
@@ -161,7 +154,7 @@ index 84eb8b0..8011056 100644
  
      /* TODO UCX requires the remote key to be bound to the origin, do we need a
       * new API? */
-@@ -3061,6 +3119,9 @@ na_ucx_rma_key_resolve(ucp_ep_h ep, struct na_ucx_mem_handle *na_ucx_mem_handle,
+@@ -3064,6 +3122,9 @@ na_ucx_rma_key_resolve(ucp_ep_h ep, struct na_ucx_mem_handle *na_ucx_mem_handle,
  
      hg_thread_mutex_lock(&na_ucx_mem_handle->rkey_unpack_lock);
  
@@ -171,39 +164,3 @@ index 84eb8b0..8011056 100644
      switch (hg_atomic_get32(&na_ucx_mem_handle->type)) {
          case NA_UCX_MEM_HANDLE_REMOTE_PACKED: {
              ucs_status_t status = ucp_ep_rkey_unpack(ep,
-@@ -3246,7 +3307,7 @@ na_ucx_initialize(
-         unexpected_size_max = na_init_info->max_unexpected_size;
-     if (na_init_info->max_expected_size)
-         expected_size_max = na_init_info->max_expected_size;
--    /* Thread mode */
-+   /* Thread mode */
-     if ((na_init_info->max_contexts > 1) &&
-         !(na_init_info->thread_mode & NA_THREAD_MODE_SINGLE))
-         context_thread_mode = UCS_THREAD_MODE_MULTI;
-@@ -3311,10 +3372,10 @@ na_ucx_initialize(
-     ret = na_ucp_config_init(na_info->protocol_name, net_device, &config);
-     NA_CHECK_SUBSYS_NA_ERROR(
-         cls, error, ret, "Could not initialize UCX config");
--
-     /* Create UCP context and release config */
-     ret = na_ucp_context_create(config, no_wait, context_thread_mode,
-         &na_ucx_class->ucp_context, &na_ucx_class->ucp_request_size);
-+
-     na_ucp_config_release(config);
-     NA_CHECK_SUBSYS_NA_ERROR(cls, error, ret, "Could not create UCX context");
- 
-@@ -4309,14 +4370,6 @@ na_ucx_cancel(
-     if ((status & NA_UCX_OP_COMPLETED) || (status & NA_UCX_OP_ERRORED) ||
-         (status & NA_UCX_OP_CANCELED) || (status & NA_UCX_OP_CANCELING))
-         return NA_SUCCESS;
--
--    cb_type = na_ucx_op_id->completion_data.callback_info.type;
--    NA_LOG_SUBSYS_DEBUG(op, "Canceling operation ID %p (%s)",
--        (void *) na_ucx_op_id, na_cb_type_to_string(cb_type));
--
--    /* Must set canceling before we check for the retry queue */
--    hg_atomic_or32(&na_ucx_op_id->status, NA_UCX_OP_CANCELING);
--
-     /* Check if op_id is in unexpected op queue */
-     if ((cb_type == NA_CB_RECV_UNEXPECTED) &&
-         (hg_atomic_get32(&na_ucx_op_id->status) & NA_UCX_OP_QUEUED)) {
