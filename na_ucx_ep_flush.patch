@@ -52,7 +52,7 @@ index 6e9c3b0..2f157da 100644
 +                    do {
 +                        ucp_worker_progress(na_ucx_addr->na_ucx_class->ucp_worker);
 +                        status = ucp_request_check_status(status_ptr);
-+                    } while (status == UCS_INPROGRESS); 
++                    } while (status == UCS_INPROGRESS);
 +                    ucp_request_free(status_ptr);
 +                }
 +            }
