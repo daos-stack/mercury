@@ -67,7 +67,7 @@ Mercury plugin to support the UCX transport.
 
 %if 0%{?suse_version}
 %global __debug_package 1
-%global _debuginfo_subpackages 0
+%global _debuginfo_subpackages 1
 %debug_package
 %endif
 
