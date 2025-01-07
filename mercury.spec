@@ -66,7 +66,7 @@ Mercury plugin to support the UCX transport.
 
 %if 0%{?suse_version}
 %global __debug_package 1
-%global _debuginfo_subpackages 0
+%global _debuginfo_subpackages 1
 %debug_package
 %endif
 
@@ -131,6 +131,9 @@ Mercury plugin to support the UCX transport.
 %{_libdir}/cmake/
 
 %changelog
+* Tue Jan 07 2025 Joseph Moore <joseph.moore@hpe.com> - 2.4.0-2
+- Enable debug RPMs for Leap sub-packages.
+
 * Mon Nov 04 2024 Jerome Soumagne <jerome.soumagne@intel.com> - 2.4.0-1
 - Update to 2.4.0
 - Update required libfabric version (>= 1.20)
