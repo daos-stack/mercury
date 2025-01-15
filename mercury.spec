@@ -132,8 +132,11 @@ Mercury plugin to support the UCX transport.
 %{_libdir}/cmake/
 
 %changelog
-* Tue Dec 17 2024 Joseph Moore <joseph.moore@hpe.com> - 2.4.0-2
+* Wed Jan 15 2024 Joseph Moore <joseph.moore@hpe.com> - 2.4.0-3
 - Add patch to na_ucx.c to flush end point prior to close.
+
+* Tue Jan 07 2025 Joseph Moore <joseph.moore@hpe.com> - 2.4.0-2
+- Enable debug RPMs for Leap sub-packages.
 
 * Mon Nov 04 2024 Jerome Soumagne <jerome.soumagne@intel.com> - 2.4.0-1
 - Update to 2.4.0
