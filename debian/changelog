@@ -1,3 +1,10 @@
+
+mercury (2.4.0-2) unstable; urgency=medium
+  [ Joseph Moore ]
+  * Enable debug RPMs for Leap sub-packages.
+
+ -- Joseph Moore <joseph.moore@hpe.com>  Tue, 07 Jan 2025 11:00:00 -0600
+
 mercury (2.4.0-1) unstable; urgency=medium
   [ Jerome Soumagne ]
   * Update to 2.4.0
