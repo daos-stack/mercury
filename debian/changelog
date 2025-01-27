@@ -1,8 +1,11 @@
+<<<<<<< HEAD
 mercury (2.4.0-3) unstable; urgency=medium
   [ Joseph Moore ]
   * Add patch to na_ucx.c to flush ep prior to close
 
  -- Joseph Moore <joseph.moore@hpe.com>  Tue, 17 Dec 2024 10:00:00 -0600
+=======
+>>>>>>> master
 
 mercury (2.4.0-2) unstable; urgency=medium
   [ Joseph Moore ]
