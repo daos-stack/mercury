@@ -132,7 +132,7 @@ Mercury plugin to support the UCX transport.
 %{_libdir}/cmake/
 
 %changelog
-* Wed Jan 15 2024 Joseph Moore <joseph.moore@hpe.com> - 2.4.0-3
+* Wed Jan 15 2025 Joseph Moore <joseph.moore@hpe.com> - 2.4.0-3
 - Add patch to na_ucx.c to flush end point prior to close.
 
 * Tue Jan 07 2025 Joseph Moore <joseph.moore@hpe.com> - 2.4.0-2
