@@ -1,6 +1,6 @@
 Name: mercury
 Version: 2.4.0
-Release: 2%{?dist}
+Release: 4%{?dist}
 
 # --without ucx build switch
 %bcond_without ucx
@@ -131,6 +131,12 @@ Mercury plugin to support the UCX transport.
 %{_libdir}/cmake/
 
 %changelog
+* Tue Mar 11 2025 Joseph Moore <joseph.moore@hpe.com> - 2.4.0-4
+- Revert to single patch file and add address to "already present" log.
+
+* Wed Jan 15 2025 Joseph Moore <joseph.moore@hpe.com> - 2.4.0-3
+- Add patch to na_ucx.c to flush end point prior to close.
+
 * Tue Jan 07 2025 Joseph Moore <joseph.moore@hpe.com> - 2.4.0-2
 - Enable debug RPMs for Leap sub-packages.
 

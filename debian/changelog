@@ -1,4 +1,16 @@
 
+mercury (2.4.0-4) unstable; urgency=medium
+  [ Joseph Moore ]
+  * Revert to single patch file and add address to "already present" log
+
+ -- Joseph Moore <joseph.moore@hpe.com>  Tue, 11 Mar 2025 10:00:00 -0600
+
+mercury (2.4.0-3) unstable; urgency=medium
+  [ Joseph Moore ]
+  * Add patch to na_ucx.c to flush ep prior to close
+
+ -- Joseph Moore <joseph.moore@hpe.com>  Wed, 15 Jan 2025 10:00:00 -0600
+
 mercury (2.4.0-2) unstable; urgency=medium
   [ Joseph Moore ]
   * Enable debug RPMs for Leap sub-packages.
