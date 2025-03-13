@@ -26,23 +26,10 @@ index 37c2148..a2d77c5 100644
      hg_engine_print_self_addr();
  
 diff --git a/src/na/na_ucx.c b/src/na/na_ucx.c
-index f8fbb23..3f7b76a 100644
+index f8fbb23..77ab49f 100644
 --- a/src/na/na_ucx.c
 +++ b/src/na/na_ucx.c
-@@ -441,6 +441,12 @@ na_ucp_ep_create(ucp_worker_h worker, ucp_ep_params_t *ep_params,
- static void
- na_ucp_ep_error_cb(void *arg, ucp_ep_h ep, ucs_status_t status);
- 
-+/**
-+ * Flush endpoint.
-+ */
-+static ucs_status_ptr_t
-+na_ucp_ep_flush(ucp_ep_h ep);
-+
- /**
-  * Close endpoint.
-  */
-@@ -614,7 +620,7 @@ na_ucx_addr_map_update(struct na_ucx_class *na_ucx_class,
+@@ -614,7 +614,7 @@ na_ucx_addr_map_update(struct na_ucx_class *na_ucx_class,
   */
  static na_return_t
  na_ucx_addr_map_remove(
@@ -51,7 +38,7 @@ index f8fbb23..3f7b76a 100644
  
  /**
   * Hash connection ID.
-@@ -1691,8 +1697,18 @@ na_ucp_listener_conn_cb(ucp_conn_request_h conn_request, void *arg)
+@@ -1691,8 +1691,18 @@ na_ucp_listener_conn_cb(ucp_conn_request_h conn_request, void *arg)
          .addr = (const struct sockaddr *) &conn_request_attrs.client_address,
          .addrlen = sizeof(conn_request_attrs.client_address)};
      na_ucx_addr = na_ucx_addr_map_lookup(&na_ucx_class->addr_map, &addr_key);
@@ -72,24 +59,10 @@ index f8fbb23..3f7b76a 100644
  
      /* Insert new entry and create new address */
      na_ret = na_ucx_addr_map_insert(na_ucx_class, &na_ucx_class->addr_map,
-@@ -1936,14 +1952,33 @@ na_ucp_ep_error_cb(
+@@ -1936,14 +1946,19 @@ na_ucp_ep_error_cb(
      na_ucx_addr_ref_decr(na_ucx_addr);
  }
  
-+/*---------------------------------------------------------------------------*/
-+static ucs_status_ptr_t
-+na_ucp_ep_flush(ucp_ep_h ep)
-+{
-+    const ucp_request_param_t flush_params = {
-+        .op_attr_mask = 0};
-+    ucs_status_ptr_t status_ptr = ucp_ep_flush_nbx(ep, &flush_params);
-+
-+    NA_CHECK_SUBSYS_ERROR_DONE(addr,
-+        status_ptr != NULL && UCS_PTR_IS_ERR(status_ptr),
-+        "ucp_ep_flush_nb() failed (%s)",
-+        ucs_status_string(UCS_PTR_STATUS(status_ptr)));
-+    return status_ptr;
-+}
 +
  /*---------------------------------------------------------------------------*/
  static void
@@ -108,7 +81,7 @@ index f8fbb23..3f7b76a 100644
          ucs_status_string(UCS_PTR_STATUS(status_ptr)));
  }
  
-@@ -2725,7 +2760,7 @@ unlock:
+@@ -2725,7 +2740,7 @@ unlock:
  
  /*---------------------------------------------------------------------------*/
  static na_return_t
@@ -117,7 +90,7 @@ index f8fbb23..3f7b76a 100644
  {
      struct na_ucx_addr *na_ucx_addr = NULL;
      na_return_t ret = NA_SUCCESS;
-@@ -2734,13 +2769,14 @@ na_ucx_addr_map_remove(struct na_ucx_map *na_ucx_map, ucs_sock_addr_t *addr_key)
+@@ -2734,13 +2749,14 @@ na_ucx_addr_map_remove(struct na_ucx_map *na_ucx_map, ucs_sock_addr_t *addr_key)
      hg_thread_rwlock_wrlock(&na_ucx_map->lock);
  
      na_ucx_addr = hg_hash_table_lookup(
@@ -135,7 +108,7 @@ index f8fbb23..3f7b76a 100644
      NA_CHECK_SUBSYS_ERROR(addr, rc != 1, unlock, ret, NA_NOENTRY,
          "hg_hash_table_remove() failed");
  
-@@ -2844,14 +2880,29 @@ na_ucx_addr_release(struct na_ucx_addr *na_ucx_addr)
+@@ -2844,14 +2860,15 @@ na_ucx_addr_release(struct na_ucx_addr *na_ucx_addr)
          NA_UCX_PRINT_ADDR_KEY_INFO("Removing address", &na_ucx_addr->addr_key);
  
          na_ucx_addr_map_remove(
@@ -148,26 +121,12 @@ index f8fbb23..3f7b76a 100644
           * not close the EP */
 -        if (na_ucx_addr->worker_addr == NULL)
 +        if (na_ucx_addr->worker_addr == NULL) {
-+            if (!na_ucx_addr->na_ucx_class->ucp_listener) {
-+                ucs_status_ptr_t status_ptr = na_ucp_ep_flush(na_ucx_addr->ucp_ep);
-+
-+                if (UCS_PTR_IS_PTR(status_ptr)) {
-+                    ucs_status_t status;
-+
-+                    do {
-+                        ucp_worker_progress(na_ucx_addr->na_ucx_class->ucp_worker);
-+                        status = ucp_request_check_status(status_ptr);
-+                    } while (status == UCS_INPROGRESS);
-+                    ucp_request_free(status_ptr);
-+                }
-+            }
-+
              na_ucp_ep_close(na_ucx_addr->ucp_ep);
 +        }
          na_ucx_addr->ucp_ep = NULL;
      }
  
-@@ -3026,6 +3077,18 @@ na_ucx_rma(struct na_ucx_class NA_UNUSED *na_ucx_class, na_context_t *context,
+@@ -3026,6 +3043,18 @@ na_ucx_rma(struct na_ucx_class NA_UNUSED *na_ucx_class, na_context_t *context,
  
      /* There is no need to have a fully resolved address to start an RMA.
       * This is only necessary for two-sided communication. */
@@ -186,7 +145,7 @@ index f8fbb23..3f7b76a 100644
  
      /* TODO UCX requires the remote key to be bound to the origin, do we need a
       * new API? */
-@@ -3064,6 +3127,9 @@ na_ucx_rma_key_resolve(ucp_ep_h ep, struct na_ucx_mem_handle *na_ucx_mem_handle,
+@@ -3064,6 +3093,9 @@ na_ucx_rma_key_resolve(ucp_ep_h ep, struct na_ucx_mem_handle *na_ucx_mem_handle,
  
      hg_thread_mutex_lock(&na_ucx_mem_handle->rkey_unpack_lock);
  
