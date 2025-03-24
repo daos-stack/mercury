@@ -1,4 +1,3 @@
-
 mercury (2.4.0-4) unstable; urgency=medium
   [ Joseph Moore ]
   * Revert to single patch file and add address to "already present" log
