@@ -1,6 +1,6 @@
 mercury (2.4.0-4) unstable; urgency=medium
   [ Joseph Moore ]
-  * Revert to single patch file and add address to "already present" log
+  * Add patch file for extra data log entry and add address to "already present" log
 
  -- Joseph Moore <joseph.moore@hpe.com>  Tue, 11 Mar 2025 10:00:00 -0600
 
