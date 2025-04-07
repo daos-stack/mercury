@@ -8,7 +8,7 @@ index 0bcddd8..83ad076 100644
          "Could not allocate extra payload buffer");
 -
 +    HG_LOG_SUBSYS_WARNING(perf,
-+        "Buffer allocated for extra input data, payload size &ld, handle %p",
++        "Buffer allocated for extra input data, payload size %ld, handle %p",
 +         *extra_buf_size, (void *) hg_handle->handle.core_handle);
      ret = HG_Bulk_create(hg_handle->handle.info.hg_class, 1, extra_buf,
          extra_buf_size, HG_BULK_READWRITE, &local_handle);
