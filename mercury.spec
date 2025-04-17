@@ -16,7 +16,7 @@ Group:    Development/Libraries
 URL:      http://mercury-hpc.github.io/
 Source0:  https://github.com/mercury-hpc/%{name}/releases/download/v%{dl_version}/%{name}-%{dl_version}.tar.bz2
 Patch0:   na_ucx.patch
-Patch1:   extra_data.patch
+Patch1:   na_ucx_ep_flush.patch
 
 BuildRequires:  libfabric-devel >= 1.20
 BuildRequires:  cmake
@@ -133,7 +133,7 @@ Mercury plugin to support the UCX transport.
 
 %changelog
 * Tue Mar 11 2025 Joseph Moore <joseph.moore@hpe.com> - 2.4.0-4
-- Add patch file for extra data log entry and add address to "already present" log.
+- Change to addr_release for "already present" warning.
 
 * Wed Jan 15 2025 Joseph Moore <joseph.moore@hpe.com> - 2.4.0-3
 - Add patch to na_ucx.c to flush end point prior to close.
