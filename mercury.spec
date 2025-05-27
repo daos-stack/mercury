@@ -133,7 +133,7 @@ Mercury plugin to support the UCX transport.
 
 %changelog
 * Tue Mar 11 2025 Joseph Moore <joseph.moore@hpe.com> - 2.4.0-4
-- Change to addr_release for "already present" warning.
+- Change to addr_release for handling of "already present" warning.
 
 * Wed Jan 15 2025 Joseph Moore <joseph.moore@hpe.com> - 2.4.0-3
 - Add patch to na_ucx.c to flush end point prior to close.
