@@ -7,5 +7,5 @@
 //@Library(value="pipeline-lib@your_branch") _
 
 
-packageBuildingPipelineDAOSTest(['distros': ['el8', 'el9', 'leap15', 'ubuntu20.04'],
+packageBuildingPipelineDAOSTest(['distros': ['el8', 'el9', 'leap15'],
                                  'test-tag': 'daosio'])
