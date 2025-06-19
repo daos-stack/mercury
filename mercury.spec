@@ -34,6 +34,14 @@ BuildRequires: ucx-devel
 BuildRequires: json-c-devel
 %endif
 
+# Needed for debugging tasks
+%if (0%{?rhel} >= 8)
+BuildRequires: libasan
+%endif
+%if (0%{?suse_version} > 0)
+BuildRequires: libasan8
+%endif
+
 %description
 Mercury is a Remote Procedure Call (RPC) framework specifically
 designed for use in High-Performance Computing (HPC) systems with
@@ -76,7 +84,7 @@ Mercury plugin to support the UCX transport.
 
 %build
 %cmake  -DCMAKE_IN_SOURCE_BUILD:BOOL=ON                   \
-        -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo          \
+        -DCMAKE_BUILD_TYPE:STRING=Asan                    \
         -DCMAKE_SKIP_INSTALL_RPATH:BOOL=ON                \
         -DBUILD_DOCUMENTATION:BOOL=OFF                    \
         -DBUILD_EXAMPLES:BOOL=OFF                         \
@@ -114,11 +122,11 @@ Mercury plugin to support the UCX transport.
 %{_bindir}/hg_*
 %{_bindir}/na_*
 %{_libdir}/*.so.*
-%{_libdir}/mercury/libna_plugin_ofi.so
+%{_libdir}/mercury/libna_plugin_ofi_debug.so
 
 %if %{with ucx}
 %files ucx
-%{_libdir}/mercury/libna_plugin_ucx.so
+%{_libdir}/mercury/libna_plugin_ucx_debug.so
 %endif
 
 %files devel
