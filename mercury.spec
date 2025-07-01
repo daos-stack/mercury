@@ -1,6 +1,6 @@
 Name: mercury
 Version: 2.4.0
-Release: 3%{?dist}
+Release: 4%{?dist}
 
 # --without ucx build switch
 %bcond_without ucx
@@ -32,6 +32,14 @@ BuildRequires: libjson-c-devel
 BuildRequires: ucx-devel
 %endif
 BuildRequires: json-c-devel
+%endif
+
+# Needed for debugging tasks
+%if (0%{?rhel} >= 8)
+BuildRequires: libasan
+%endif
+%if (0%{?suse_version} > 0)
+BuildRequires: libasan8
 %endif
 
 %description
@@ -76,7 +84,7 @@ Mercury plugin to support the UCX transport.
 
 %build
 %cmake  -DCMAKE_IN_SOURCE_BUILD:BOOL=ON                   \
-        -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo          \
+        -DCMAKE_BUILD_TYPE:STRING=Asan                    \
         -DCMAKE_SKIP_INSTALL_RPATH:BOOL=ON                \
         -DBUILD_DOCUMENTATION:BOOL=OFF                    \
         -DBUILD_EXAMPLES:BOOL=OFF                         \
@@ -114,11 +122,11 @@ Mercury plugin to support the UCX transport.
 %{_bindir}/hg_*
 %{_bindir}/na_*
 %{_libdir}/*.so.*
-%{_libdir}/mercury/libna_plugin_ofi.so
+%{_libdir}/mercury/libna_plugin_ofi_debug.so
 
 %if %{with ucx}
 %files ucx
-%{_libdir}/mercury/libna_plugin_ucx.so
+%{_libdir}/mercury/libna_plugin_ucx_debug.so
 %endif
 
 %files devel
@@ -132,6 +140,9 @@ Mercury plugin to support the UCX transport.
 %{_libdir}/cmake/
 
 %changelog
+* Tue Mar 11 2025 Joseph Moore <joseph.moore@hpe.com> - 2.4.0-4
+- Change to addr_release for handling of "already present" warning.
+
 * Wed Jan 15 2025 Joseph Moore <joseph.moore@hpe.com> - 2.4.0-3
 - Add patch to na_ucx.c to flush end point prior to close.
 

@@ -1,0 +1,26 @@
+diff --git a/src/mercury.c b/src/mercury.c
+index 0bcddd8..c9b4641 100644
+--- a/src/mercury.c
++++ b/src/mercury.c
+@@ -772,6 +772,10 @@ hg_set_struct(struct hg_private_handle *hg_handle,
+         HG_CHECK_SUBSYS_ERROR(rpc, hg_proc_get_extra_buf(proc), error, ret,
+             HG_OVERFLOW, "Extra bulk handle could not fit into buffer");
+ 
++    HG_LOG_SUBSYS_WARNING(perf,
++        "Buffer allocated for send of extra input data, payload size %ld",
++         hg_proc_get_size_used(proc) + header_offset);
++
+         *more_data = true;
+     }
+ 
+@@ -939,7 +943,9 @@ hg_get_extra_payload(struct hg_private_handle *hg_handle, hg_op_t op,
+     *extra_buf = hg_mem_aligned_alloc(page_size, *extra_buf_size);
+     HG_CHECK_SUBSYS_ERROR(rpc, *extra_buf == NULL, done, ret, HG_NOMEM,
+         "Could not allocate extra payload buffer");
+-
++    HG_LOG_SUBSYS_WARNING(perf,
++        "Buffer allocated for extra input data, payload size %ld, handle %p",
++         *extra_buf_size, (void *) hg_handle->handle.core_handle);
+     ret = HG_Bulk_create(hg_handle->handle.info.hg_class, 1, extra_buf,
+         extra_buf_size, HG_BULK_READWRITE, &local_handle);
+     HG_CHECK_SUBSYS_HG_ERROR(rpc, done, ret, "Could not create HG bulk handle");

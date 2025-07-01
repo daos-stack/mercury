@@ -21,7 +21,7 @@ index 84eb8b0..e4b6676 100644
 +    if (na_ucx_addr != NULL) {
 +        NA_LOG_SUBSYS_WARNING(addr,
 +            "An entry is already present for this address");
-+        na_ucx_addr_map_remove(&na_ucx_class->addr_map, na_ucx_addr);
++        na_ucx_addr_release(na_ucx_addr);
 +    }
  
      /* Insert new entry and create new address */
