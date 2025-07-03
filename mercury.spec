@@ -1,6 +1,6 @@
 Name: mercury
 Version: 2.4.0
-Release: 3%{?dist}
+Release: 5%{?dist}
 
 # --without ucx build switch
 %bcond_without ucx
@@ -132,6 +132,12 @@ Mercury plugin to support the UCX transport.
 %{_libdir}/cmake/
 
 %changelog
+* Wed Jun 25 2025 Joseph Moore <joseph.moore@hpe.com> - 2.4.0-5
+- Update release number to differentiate from test RPMs for prior issue..
+
+* Tue Mar 11 2025 Joseph Moore <joseph.moore@hpe.com> - 2.4.0-4
+- Change to addr_release for handling of "already present" warning.
+
 * Wed Jan 15 2025 Joseph Moore <joseph.moore@hpe.com> - 2.4.0-3
 - Add patch to na_ucx.c to flush end point prior to close.
 
