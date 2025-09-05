@@ -1,6 +1,6 @@
 Name: mercury
 Version: 2.4.0
-Release: 5%{?dist}
+Release: 6%{?dist}
 
 # --without ucx build switch
 %bcond_without ucx
@@ -15,8 +15,7 @@ License:  BSD
 Group:    Development/Libraries
 URL:      http://mercury-hpc.github.io/
 Source0:  https://github.com/mercury-hpc/%{name}/releases/download/v%{dl_version}/%{name}-%{dl_version}.tar.bz2
-Patch0:   na_ucx.patch
-Patch1:   na_ucx_ep_flush.patch
+Patch0:   https://patch-diff.githubusercontent.com/raw/mercury-hpc/mercury/pull/820.patch
 
 BuildRequires:  libfabric-devel >= 1.20
 BuildRequires:  cmake
@@ -132,6 +131,9 @@ Mercury plugin to support the UCX transport.
 %{_libdir}/cmake/
 
 %changelog
+* Fri Sep 05 2025 Jerome Soumagne <jerome.soumagne@hpe.com> - 2.4.0-6
+- Update ucx patch
+
 * Wed Jun 25 2025 Joseph Moore <joseph.moore@hpe.com> - 2.4.0-5
 - Update release number to differentiate from test RPMs for prior issue..
 
