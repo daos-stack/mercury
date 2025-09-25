@@ -2,6 +2,8 @@ Name: mercury
 Version: 2.4.1~rc2
 Release: 1%{?dist}
 
+# --without libfabric build switch
+%bcond_without libfabric
 # --without ucx build switch
 %bcond_without ucx
 
@@ -16,10 +18,12 @@ Group:    Development/Libraries
 URL:      http://mercury-hpc.github.io/
 Source0:  https://github.com/mercury-hpc/%{name}/releases/download/v%{dl_version}/%{name}-%{dl_version}.tar.bz2
 
-BuildRequires:  libfabric-devel >= 1.20
 BuildRequires:  cmake
 BuildRequires:  boost-devel
 BuildRequires:  gcc-c++
+%if %{with libfabric}
+BuildRequires:  libfabric-devel >= 1.20
+%endif
 %if 0%{?suse_version}
 %if %{with ucx}
 BuildRequires: libucp-devel, libucs-devel, libuct-devel
@@ -51,6 +55,16 @@ Requires: %{name}%{?_isa} = %{version}-%{release}
 
 %description devel
 Mercury development headers and libraries.
+
+
+%if %{with libfabric}
+%package libfabric
+Summary:  Mercury with libfabric
+Requires: %{name}%{?_isa} = %{version}-%{release}
+
+%description libfabric
+Mercury plugin to support the libfabric transport.
+%endif
 
 
 %if %{with ucx}
@@ -94,7 +108,9 @@ Mercury plugin to support the UCX transport.
 %if %{with ucx}
         -DNA_USE_UCX:BOOL=ON                              \
 %endif
+%if %{with libfabric}
         -DNA_USE_OFI:BOOL=ON
+%endif
 %cmake_build
 
 %install
@@ -112,7 +128,11 @@ Mercury plugin to support the UCX transport.
 %{_bindir}/hg_*
 %{_bindir}/na_*
 %{_libdir}/*.so.*
+
+%if %{with libfabric}
+%files libfabric
 %{_libdir}/mercury/libna_plugin_ofi.so
+%endif
 
 %if %{with ucx}
 %files ucx
@@ -132,6 +152,7 @@ Mercury plugin to support the UCX transport.
 %changelog
 * Thu Sep 25 2025 Jerome Soumagne <jerome.soumagne@hpe.com> - 2.4.1~rc2-1
 - Update to 2.4.1rc2
+- Separate libfabric plugin from main build to align with ucx plugin.
 
 * Wed Jun 25 2025 Joseph Moore <joseph.moore@hpe.com> - 2.4.0-5
 - Update release number to differentiate from test RPMs for prior issue.
