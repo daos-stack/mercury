@@ -1,5 +1,5 @@
 Name: mercury
-Version: 2.4.1~rc2
+Version: 2.4.1~rc3
 Release: 1%{?dist}
 
 # --without libfabric build switch
@@ -150,8 +150,8 @@ Mercury plugin to support the UCX transport.
 %{_libdir}/cmake/
 
 %changelog
-* Thu Sep 25 2025 Jerome Soumagne <jerome.soumagne@hpe.com> - 2.4.1~rc2-1
-- Update to 2.4.1rc2
+* Fri Sep 26 2025 Jerome Soumagne <jerome.soumagne@hpe.com> - 2.4.1~rc3-1
+- Update to 2.4.1rc3
 - Separate libfabric plugin from main build to align with ucx plugin.
 
 * Wed Jun 25 2025 Joseph Moore <joseph.moore@hpe.com> - 2.4.0-5
