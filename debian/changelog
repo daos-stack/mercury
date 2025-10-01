@@ -1,8 +1,8 @@
-mercury (2.4.1~rc3-1) unstable; urgency=medium
+mercury (2.4.1~rc4-1) unstable; urgency=medium
   [ Jerome Soumagne ]
-  * Update to 2.4.1rc3
+  * Update to 2.4.1rc4
 
- -- Jerome Soumagne <jerome.soumagne@hpe.com>  Fri, 26 Sep 2025 15:00:00 -0600
+ -- Jerome Soumagne <jerome.soumagne@hpe.com>  Wed, 01 Oct 2025 17:00:00 -0600
 
 mercury (2.4.0-5) unstable; urgency=medium
   [ Joseph Moore ]
